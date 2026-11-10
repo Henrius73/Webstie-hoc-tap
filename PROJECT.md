@@ -55,7 +55,7 @@
 | Ngoại tuyến | Service Worker (PWA) | Mốc 3 |
 | Backend / phòng online | [Firebase / Supabase / Node + Socket.IO — chưa chọn] | Mốc 4 |
 | Hosting | Cloudflare Pages (chính) / Netlify (thay thế) | Trang tĩnh, deploy từ GitHub; dùng chung `_headers` |
-| Quản lý mã nguồn | Git + GitHub | Đã khởi tạo repo local, chưa push GitHub |
+| Quản lý mã nguồn | Git + GitHub | Đã push nhánh `main` lên `Henrius73/Webstie-hoc-tap` |
 
 **Chạy thử ở máy:** `node serve.js` rồi mở `http://localhost:8000` (không mở trực tiếp `index.html` vì ES modules/service worker cần HTTP).
 
@@ -291,6 +291,7 @@ export default {
 - PWA chạy ngoại tuyến: `manifest.webmanifest` + icon 192/512/maskable, service worker `sw.js` cache sẵn toàn bộ HTML/CSS/JS/icon; đăng ký trong `src/main.js`; trang điều hướng ưu tiên mạng rồi fallback cache; dữ liệu localStorage giữ nguyên khi mất mạng.
 - Ba dạng câu hỏi: `choice` (4 đáp án — như cũ), `boolean` (Đúng/Sai, 2 nút lớn có biểu tượng), `fill` (ô nhập + nút Trả lời, Enter để gửi, 1–5 cách viết). Trình soạn có ô chọn loại; đổi loại đặt lại phần đáp án nhưng giữ nội dung/ảnh/thời gian. Chấm điền từ bỏ khoảng trắng thừa, không phân biệt hoa/thường, giữ dấu tiếng Việt. Dữ liệu cũ tự nhận là `choice`; CSV vẫn chỉ tạo câu 4 đáp án.
 - Chuẩn bị deploy: thêm `_headers` (Cloudflare Pages/Netlify) giữ HTML/manifest/SW không cache và header an toàn; `README.md` hướng dẫn chạy local, deploy, sao lưu JSON và tăng cache SW; `.gitignore`; khởi tạo Git repo local với commit đầu tiên.
+- Đã push mã nguồn lên GitHub: `https://github.com/Henrius73/Webstie-hoc-tap` (nhánh `main`, commit `ec6aaf0`).
 - Nhập câu hỏi từ CSV (Mốc 2): hỗ trợ BOM, CRLF/LF, tiếng Việt, dấu phẩy/ngoặc kép/nội dung nhiều dòng trong ô; nhận header mục 5 hoặc file không header; báo lỗi từng dòng; thêm câu hợp lệ vào bộ đang soạn, không tự lưu.
 - Chuẩn hóa dữ liệu theo mục 5: `{ id, title, subject, questions: [{ id, type, text, options, correctIndex, answers, image, timeLimit }] }`.
 - Tự chuyển dữ liệu cũ dùng `name`: giữ id bộ cũ, cấp id câu, `type = 'choice'`, `answers = []`, `image = null`, `timeLimit = 0`; bỏ qua bộ hỏng thay vì làm sập app.
@@ -298,12 +299,12 @@ export default {
 - Chuẩn hóa interface game theo mục 6: thêm registry `src/games/index.js`; mỗi game export `{ id, name, icon, teamLimit, init(container, teams, options), onAnswer(teamId, isCorrect), checkWin(), destroy() }`; `checkWin()` trả về đội thắng hoặc `null`.
 
 **Đang dở:**
-- Chưa đưa mã nguồn lên GitHub và chưa deploy thật (cần tài khoản/không thể tự tạo repo từ xa).
+- Chưa deploy thật lên hosting.
 - Chưa thử trên điện thoại thật.
 
 **Việc tiếp theo (tối đa 3 việc):**
-1. Tạo repository GitHub, push commit đầu tiên.
-2. Kết nối Cloudflare Pages (hoặc Netlify), deploy và thử trên điện thoại thật.
+1. Kết nối Vercel (hoặc Cloudflare Pages/Netlify) với repo GitHub và deploy.
+2. Thử trên điện thoại thật: cài PWA, chơi ngoại tuyến.
 3. Rà soát giao diện desktop/mobile sau khi có bản chạy thật.
 
 **Lỗi/vấn đề đã biết:**

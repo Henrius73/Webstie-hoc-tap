@@ -9,7 +9,7 @@
 
 ## 1. Tổng quan
 
-**Mục tiêu:** Website game học tập. Giáo viên tạo bộ câu hỏi trắc nghiệm, học sinh chơi các mini-game (đua xe, kéo co, đua vịt...). Trả lời đúng thì nhân vật tiến lên.
+**Mục tiêu:** Website học tập. Giáo viên tạo bộ câu hỏi trắc nghiệm, học sinh nhập tên và trả lời theo lượt; điểm từng bạn được tổng hợp sau giờ làm bài. *(Tạm thời bỏ phần mini-game; mã nguồn game vẫn giữ trong `src/games/` để khôi phục sau.)*
 
 **Người dùng chính**
 - Giáo viên: tạo/nhập câu hỏi, chọn game, điều khiển lớp chơi.
@@ -130,8 +130,8 @@ Dữ liệu cũ chưa có `type` được tự hiểu là `choice`. Câu `fill` 
 ```
 
 **Quy ước**
-- Mỗi học sinh trả lời đúng **1 câu** trong một trận; trận kết thúc khi mọi học sinh đã trả lời.
-- Đường đua là của **cả lớp**: mỗi câu đúng tiến 1 bước, tối đa bằng số học sinh.
+- Mỗi học sinh trả lời đúng **1 câu** trong một lượt làm bài; lượt kết thúc khi mọi học sinh đã trả lời.
+- Hiện tại màn làm bài chỉ hiện câu hỏi + lượt + đồng hồ + phản hồi; điểm từng bạn hiện ở màn kết thúc. Đường đua mini-game tạm ngắt khỏi giao diện.
 - `correctIndex` tính từ 0.
 - Mọi dữ liệu nhập từ ngoài (Excel, CSV) phải được kiểm tra hợp lệ trước khi dùng.
 
@@ -161,6 +161,8 @@ Câu hỏi,Đáp án A,Đáp án B,Đáp án C,Đáp án D,Đáp án đúng (A-D
 
 ## 6. Kiến trúc game
 
+> **Trạng thái 2026-11-10:** phần mini-game đang **tạm ngắt** khỏi giao diện và luồng làm bài. `src/main.js` không import `src/games/index.js`; màn làm bài chỉ dùng `src/quizEngine.js`. Mã nguồn game và interface bên dưới vẫn giữ nguyên để khôi phục sau.
+
 Mọi game dùng chung một interface, nhờ đó thêm game mới chỉ cần viết thêm một file trong `src/games/`.
 
 ```js
@@ -184,13 +186,13 @@ export default {
 };
 ```
 
-**Luồng một ván chơi**
-1. Chọn bộ câu hỏi → chọn game → nhập tên từng học sinh tham gia.
+**Luồng một lượt làm bài (hiện tại)**
+1. Chọn bộ câu hỏi → nhập tên từng học sinh tham gia.
 2. `quiz.js` đưa từng câu cho học sinh đến lượt (mỗi bạn 1 câu).
-3. Học sinh chọn đáp án → `quiz.js` kiểm tra → gọi `game.onAnswer('class', isCorrect)`.
-4. Khi mọi học sinh đã trả lời, hiện bảng tổng hợp điểm từng học sinh và lưu lịch sử.
+3. Học sinh chọn đáp án → `quizEngine.js` kiểm tra và cộng điểm cho bạn đó.
+4. Khi mọi học sinh đã trả lời, hiện bảng tổng hợp điểm từng học sinh và lưu lịch sử với `gameId: 'quiz'`.
 
-**Nguyên tắc:** `quiz.js` không biết gì về hình ảnh game, game không biết gì về dữ liệu câu hỏi. Hai phần chỉ giao tiếp qua `onAnswer`.
+**Nguyên tắc (khi khôi phục game):** `quiz.js` không biết gì về hình ảnh game, game không biết gì về dữ liệu câu hỏi. Hai phần chỉ giao tiếp qua `onAnswer`.
 
 ---
 
@@ -198,12 +200,14 @@ export default {
 
 | Game | Cách chơi | Trạng thái |
 |---|---|---|
-| Đua xe | Đúng → xe của cả lớp tiến 1 bước | [x] đã xong |
-| Kéo co | Đúng → kéo dây về phía lớp; sai bị thử thách kéo lại | [x] đã xong |
-| Đua vịt | Giống đua xe, đổi giao diện | [x] đã xong |
+| Đua xe | Đúng → xe của cả lớp tiến 1 bước | [x] đã xong · tạm ngắt |
+| Kéo co | Đúng → kéo dây về phía lớp; sai bị thử thách kéo lại | [x] đã xong · tạm ngắt |
+| Đua vịt | Giống đua xe, đổi giao diện | [x] đã xong · tạm ngắt |
 | Đua thuyền rồng | Giống đua xe, nhiều làn | [ ] chưa làm |
-| Nhảy bao bố | Đúng → nhảy 1 bước | [x] đã xong |
+| Nhảy bao bố | Đúng → nhảy 1 bước | [x] đã xong · tạm ngắt |
 | Tung xúc xắc | Đúng → tung xúc xắc, đi số ô tương ứng | [ ] chưa làm |
+
+Hiện tại màn **Làm bài** không hiện chọn game; tất cả học sinh làm trắc nghiệm và điểm được tính riêng cho từng bạn.
 
 ---
 
@@ -272,7 +276,7 @@ export default {
 | 2026-11-10 | Ảnh câu hỏi dùng URL; hết giờ tính là trả lời sai; `timeLimit = 0` là không giới hạn | Đúng schema mục 5 (`image` là chuỗi/null), giữ công bằng khi tính điểm và không ép giáo viên tải ảnh lên |
 | 2026-11-10 | Âm thanh tạo bằng Web Audio API trong `src/sound.js`; bật mặc định, tắt/bật được và ghi nhớ ở `hocvui.muted.v1` | Không cần tệp ngoài, không vướng bản quyền, chạy ngoại tuyến; AudioContext chỉ tạo ở lần phát đầu để không bị trình duyệt chặn |
 | 2026-11-10 | Toàn màn hình áp dụng cho khung `.game`, không phải cả trang; overlay thắng nằm trong khung này | Giữ nguyên nút điều khiển và bảng điểm khi chiếu; ẩn nút nếu trình duyệt không hỗ trợ |
-| 2026-11-10 | PWA dùng service worker cache sẵn app shell (phiên bản `hocvui-vN`, hiện là `hocvui-v5`); trang điều hướng ưu tiên mạng rồi mới lấy cache | Chạy được khi mất mạng mà vẫn nhận bản mới khi có mạng; chỉ cache tài nguyên cùng origin |
+| 2026-11-10 | PWA dùng service worker cache sẵn app shell (phiên bản `hocvui-vN`, hiện là `hocvui-v7`); trang điều hướng ưu tiên mạng rồi mới lấy cache | Chạy được khi mất mạng mà vẫn nhận bản mới khi có mạng; chỉ cache tài nguyên cùng origin |
 | 2026-11-10 | Icon PWA tạo sẵn bằng script Node và lưu trong `assets/icons/` | Không phụ thuộc thư viện/DVD, đủ 192, 512 và bản maskable để cài lên điện thoại |
 | 2026-11-10 | Mở rộng schema với `type: choice / boolean / fill`; dữ liệu cũ tự nhận là `choice`; giữ nguyên `options`/`correctIndex`, thêm `answers` | Tương thích ngược, CSV 6 cột vẫn dùng được; Excel là cách chia sẻ câu đúng/sai và điền từ |
 | 2026-11-10 | Điền từ so khớp sau khi cắt/gộp khoảng trắng, không phân biệt hoa/thường, giữ dấu tiếng Việt | Tránh lỗi gõ thừa khoảng trắng; giáo viên chủ động thêm cách viết không dấu vào `answers` nếu cần |
@@ -289,7 +293,9 @@ export default {
 | 2026-11-10 | Đường đua đại diện cả lớp (`{ id: 'class', name: 'Cả lớp' }`), tối đa số bước = số học sinh; kéo co là "Cả lớp vs Thử thách" | Một làn không thể hiện 20–40 học sinh; vẫn giữ được cảm giác thi đua và 4 mini-game |
 | 2026-11-10 | Trận kết thúc khi mọi học sinh đã trả lời, không dừng sớm theo `checkWin()` | Đảm bảo mọi bạn đều có điểm; `checkWin()` chỉ còn ý nghĩa khi cả lớp trả lời đúng hết |
 | 2026-11-10 | Lịch sử trận mới lưu `students`; trận cũ đọc `teams` để tương thích ngược | Không làm mất lịch sử đã có trên máy giáo viên |
-| | | |
+| 2026-11-10 | Tạm bỏ mini-game khỏi giao diện; màn **Làm bài** chỉ gồm câu hỏi, lượt, đồng hồ, phản hồi; điểm từng học sinh hiện ở màn kết thúc | Tập trung vào mục tiêu trắc nghiệm và tính điểm từng bạn; giữ mã nguồn `src/games/` để khôi phục sau |
+| 2026-11-10 | Trận mới lưu `gameId: 'quiz'`, `gameName: 'Trắc nghiệm'`; trận cũ vẫn hiện tên mini-game tương ứng | Lịch sử cũ không bị đổi nhãn; trận mới không phụ thuộc registry game |
+| 2026-11-10 | Đổi chữ trên web (footer, tiêu đề tab, manifest, trang chủ) sang nội dung trắc nghiệm; footer chỉ còn “Học Vui” | Theo yêu cầu, tránh gây hiểu nhầm còn mini-game |
 
 ---
 
@@ -306,14 +312,14 @@ export default {
 
 ## 12. Trạng thái hiện tại *(cập nhật cuối mỗi phiên)*
 
-**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel); vừa chuyển từ đội chơi sang danh sách học sinh. Tiếp theo deploy và thử trên điện thoại.
+**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel). Đang tạm bỏ mini-game để chạy luồng **làm trắc nghiệm, tính điểm từng học sinh**. Tiếp theo deploy và thử trên điện thoại.
 
 **Đã xong:**
 - Khung trang, sidebar, router hash, responsive (desktop / tablet / mobile), icon Lucide ngoại tuyến.
-- Quiz engine: chia lượt theo từng học sinh, mỗi bạn trả lời 1 câu; trận kết thúc khi mọi bạn đã trả lời.
-- Game đua xe + kéo co, màn thắng, chơi lại, tổng hợp điểm và lịch sử trận đấu.
-- Game Đua vịt tri thức (`duck`): dùng lại khung đường đua của lớp, đổi sang mặt nước, vịt bơi 1 bước mỗi câu đúng.
-- Game Nhảy bao bố (`sack`): đường đua bao tải chia ô của lớp, nhảy 1 bước mỗi câu đúng.
+- Quiz engine: chia lượt theo từng học sinh, mỗi bạn trả lời 1 câu; lượt kết thúc khi mọi bạn đã trả lời.
+- Màn **Làm bài** tạm bỏ chọn mini-game và khung đường đua: chỉ còn câu hỏi, lượt của học sinh, đồng hồ, phản hồi đúng/sai; điểm từng bạn hiện ở bảng kết thúc. Trang chủ, tiêu đề tab, manifest và footer đổi sang nội dung trắc nghiệm (footer chỉ còn “Học Vui”).
+- Lịch sử/Tổng hợp điểm: trận mới gắn nhãn **Trắc nghiệm** (`gameId: 'quiz'`); trận cũ vẫn hiện tên mini-game tương ứng.
+- Giữ nguyên mã nguồn 4 mini-game trong `src/games/` (đua xe, kéo co, đua vịt, nhảy bao bố) nhưng không import vào luồng hiện tại.
 - Trình soạn câu hỏi: tạo/sửa/xóa bộ, lưu localStorage, bộ mẫu.
 - Ảnh minh họa + thời gian cho từng câu: ô nhập URL ảnh (có xem trước), ô thời gian 0–600 giây; màn chơi hiện ảnh, đếm ngược theo `timeLimit`, hết giờ tính là trả lời sai và tự chuyển lượt; `timeLimit = 0` thì không hiện đồng hồ.
 - Âm thanh hiệu ứng (`src/sound.js`): Web Audio tạo tiếng đúng (2 nốt đi lên), sai/hết giờ (1 nốt đi xuống), thắng (4 nốt); bật mặc định, nút tắt/bật ở màn chơi, ghi nhớ lựa chọn.
@@ -329,8 +335,8 @@ export default {
 - Đã bỏ nhập/xuất JSON: xóa nút Nhập JSON, nút Xuất JSON và code `parseSetsJson`/`buildExportData`; Excel là định dạng nhập/xuất tệp duy nhất.
 - Chuẩn hóa interface game theo mục 6: thêm registry `src/games/index.js`; mỗi game export `{ id, name, icon, init(container, players, options), onAnswer(playerId, isCorrect), checkWin(), destroy() }`; `checkWin()` trả về người chơi khi về đích hoặc `null`.
 - Trang thiết lập nhập tên học sinh: ô nhập + nút **Thêm** (Enter cũng thêm), chip tên kèm nút xóa, tối đa 40 bạn, không trùng tên, cần ít nhất 2 bạn để bắt đầu.
-- Đường đua chung của lớp: mỗi câu đúng tiến 1 bước với tối đa bằng số học sinh; kéo co là "Cả lớp vs Thử thách". Màn kết thúc hiện bảng tổng hợp điểm từng học sinh (hạng, đúng/tổng, tỉ lệ) và lưu vào lịch sử; trang Tổng hợp điểm xếp hạng theo học sinh.
-- Kiểm thử tự động qua CDP: thêm/xóa/trùng tên, chặn dưới 2 bạn, chơi trọn 4 game, bảng điểm cuối trận, lịch sử mới và cũ, xếp hạng học sinh, responsive 390px, overlay cuộn được với lớp 40 bạn, PWA ngoại tuyến với cache `hocvui-v6`; không có lỗi Console.
+- Màn kết thúc hiện bảng tổng hợp điểm từng học sinh (hạng, đúng/tổng, tỉ lệ) và lưu vào lịch sử; trang Tổng hợp điểm xếp hạng theo học sinh, đọc được cả lịch sử `students` mới và `teams` cũ.
+- Kiểm thử tự động qua CDP: thêm/xóa/trùng tên, chặn dưới 2 bạn, làm trọn một lượt trắc nghiệm (không chọn game), bảng điểm cuối trận, lịch sử mới và cũ, xếp hạng học sinh, responsive 390px, overlay cuộn được với lớp 40 bạn, PWA ngoại tuyến với cache `hocvui-v7`; không có lỗi Console.
 
 **Đang dở:**
 - Chưa deploy thật lên hosting.
@@ -354,7 +360,7 @@ export default {
 - Thêm game mới: tạo module export object theo mục 6 rồi khai báo trong `src/games/index.js`; trang thiết lập tự sinh danh sách game.
 - Ảnh câu hỏi là URL (không tải tệp lên); đồng hồ dùng mốc thời gian tuyệt đối nên không lệch sau khi tab bị treo, dừng khi đã trả lời hoặc rời trang.
 - Âm thanh nằm ở `src/sound.js`; muốn thêm hiệu ứng mới thì thêm hàm `play...` rồi gọi ở `src/main.js`. Toàn màn hình gắn với `.game` và có dọn listener khi rời trang.
-- PWA: sửa danh sách file trong `sw.js` hoặc muốn buộc tải bản mới thì tăng `CACHE` (hiện `hocvui-v5`). Chỉ tài nguyên cùng origin được cache; ảnh câu hỏi dùng URL ngoài vẫn cần mạng.
+- PWA: sửa danh sách file trong `sw.js` hoặc muốn buộc tải bản mới thì tăng `CACHE` (hiện `hocvui-v7`). Chỉ tài nguyên cùng origin được cache; ảnh câu hỏi dùng URL ngoài vẫn cần mạng.
 - Deploy: chạy local bằng `node serve.js` → `http://localhost:8000`. `_headers` chỉ có tác dụng trên Cloudflare Pages/Netlify, server local bỏ qua. Trước khi đổi tên miền phải xuất Excel vì dữ liệu nằm trong `localStorage` theo từng origin.
 - Excel: logic đọc/ghi nằm ở `src/xlsx.js`; `src/main.js` chỉ nối nút và xử lý báo cáo. Đọc sheet đầu tiên; tiêu đề cột nhận không dấu/khác hoa thường; file 6 cột cũ tự nhận là `choice`. Muốn đổi cột/định dạng phải sửa `COLUMNS`, `headerMap` và `sheetXml`. Không thêm thư viện ZIP/Excel nếu chưa hỏi.
 - Dạng câu hỏi: `src/store.js` chuẩn hóa cả 3 loại và có `blankQuestion(type)`; `src/quizEngine.js` chấm số thứ tự (choice/boolean) hoặc chuỗi (`fill`). Muốn thêm loại mới: mở rộng `QUESTION_TYPES`, phần render trong `src/main.js` và `normalizeQuestion`.

@@ -1,7 +1,7 @@
 {
-  "name": "Học Vui – Đấu trí cùng mini-game",
+  "name": "Học Vui – Trắc nghiệm cùng cả lớp",
   "short_name": "Học Vui",
-  "description": "Lớp học sôi động cùng mini-game đấu trí: soạn câu hỏi, chia đội và chơi ngay trên trình duyệt.",
+  "description": "Soạn câu hỏi trắc nghiệm, học sinh nhập tên và trả lời theo lượt; điểm từng bạn được tổng hợp sau giờ làm bài.",
   "lang": "vi",
   "dir": "ltr",
   "start_url": "./index.html#/",

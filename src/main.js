@@ -4,7 +4,6 @@ import { esc, toast } from './utils.js';
 import { parseCsvQuestions } from './csv.js';
 import { parseXlsxQuestions, buildXlsxWorkbook } from './xlsx.js';
 import { createQuiz } from './quizEngine.js';
-import { getGame, listGames } from './games/index.js';
 import { icon } from './icons.js';
 import { getHistory, saveMatch, clearHistory, summarize, formatDate } from './stats.js';
 import { playCorrect, playWrong, playWin, isMuted, toggleMuted } from './sound.js';
@@ -12,9 +11,23 @@ import { playCorrect, playWrong, playWin, isMuted, toggleMuted } from './sound.j
 const app = document.getElementById('app');
 const STUDENT_COLORS = ['#7c3aed', '#db2777', '#0284c7', '#d97706', '#059669', '#dc2626', '#0891b2', '#9333ea'];
 const MAX_STUDENTS = 40;
-// Người chơi đại diện cả lớp trên đường đua
-const CLASS_PLAYER = { id: 'class', name: 'Cả lớp', color: '#7c3aed' };
+// Loại hoạt động hiện tại: làm trắc nghiệm, điểm tổng hợp theo từng học sinh
+const QUIZ_MODE = { id: 'quiz', name: 'Trắc nghiệm', icon: 'pencil-line' };
 const MATCH_KEY = 'hocvui.match.v1';
+
+// Nhãn hiển thị trong lịch sử: trận mới là trắc nghiệm, trận cũ giữ tên mini-game
+function matchType(match) {
+  if (!match?.gameId || match.gameId === QUIZ_MODE.id) {
+    return { name: QUIZ_MODE.name, icon: QUIZ_MODE.icon };
+  }
+  const legacy = {
+    race: { name: 'Đua xe tri thức', icon: 'car' },
+    tug: { name: 'Kéo co tri thức', icon: 'move-horizontal' },
+    duck: { name: 'Đua vịt tri thức', icon: 'bird' },
+    sack: { name: 'Nhảy bao bố', icon: 'rabbit' },
+  };
+  return legacy[match.gameId] || { name: match.gameName || QUIZ_MODE.name, icon: QUIZ_MODE.icon };
+}
 
 let cleanupPage = null;
 
@@ -28,29 +41,25 @@ function renderHome() {
     <section class="hero">
       <div>
         <span class="hero__eyebrow">${icon('sparkles')} Học mà chơi · Chơi mà học</span>
-        <h1>Lớp học sôi động cùng <em>mini-game</em> đấu trí</h1>
+        <h1>Lớp học sôi động cùng <em>trắc nghiệm</em></h1>
         <p>Giáo viên tạo bộ câu hỏi trắc nghiệm trong vài phút. Học sinh nhập tên để tham gia,
-          cả lớp cùng trả lời và tiến về đích — kiến thức vào đầu, tiếng cười ở lại lớp.</p>
+          cả lớp lần lượt trả lời — điểm từng bạn được tổng hợp ngay sau buổi làm bài.</p>
         <div class="hero__actions">
           <a class="btn btn--primary btn--lg" href="#/teacher">${icon('pencil-line')} Tạo bộ câu hỏi</a>
-          <a class="btn btn--ghost btn--lg" href="#/play">${icon('gamepad-2')} Vào chơi ngay</a>
+          <a class="btn btn--ghost btn--lg" href="#/play">${icon('play')} Vào làm bài</a>
         </div>
       </div>
       <div class="hero__art">
         <span class="hero__spark hero__spark--a">${icon('star')}</span>
         <span class="hero__spark hero__spark--b">${icon('target')}</span>
         <div class="mock">
-          <span class="mock__team">${icon('car')} Minh Anh · Lượt của bạn</span>
+          <span class="mock__team">${icon('pencil-line')} Minh Anh · Lượt của bạn</span>
           <div class="mock__q">Hành tinh nào gần Mặt Trời nhất?</div>
           <div class="mock__opts">
             <span>Kim Tinh</span>
             <span class="is-pick">${icon('check')} Thủy Tinh</span>
             <span>Hỏa Tinh</span>
             <span>Mộc Tinh</span>
-          </div>
-          <div class="mock__track">
-            <span class="mock__car" style="left:62%">${icon('car')}</span>
-            <span class="mock__flag">${icon('flag')}</span>
           </div>
         </div>
       </div>
@@ -59,7 +68,7 @@ function renderHome() {
     <section class="stats">
       <div class="stat"><strong>${sets.length}</strong><span>Bộ câu hỏi đã tạo</span></div>
       <div class="stat"><strong>${totalQuestions}</strong><span>Câu hỏi sẵn sàng</span></div>
-      <div class="stat"><strong>2</strong><span>Mini-game đang mở</span></div>
+      <div class="stat"><strong>1</strong><span>Câu hỏi mỗi học sinh</span></div>
     </section>
 
     ${sets.length ? `
@@ -86,8 +95,8 @@ function renderHome() {
         <div class="recent__list">
           ${history.slice(0, 3).map(m => `
             <a class="recent__item" href="#/stats">
-              <strong>${m.winner?.name ? `${esc(m.winner.name)} dẫn đầu` : 'Trận đấu'} · ${esc(m.setName || 'Bộ câu hỏi')}</strong>
-              <span>${getGame(m.gameId).name} · ${formatDate(m.date)}</span>
+              <strong>${m.winner?.name ? `${esc(m.winner.name)} dẫn đầu` : 'Buổi làm bài'} · ${esc(m.setName || 'Bộ câu hỏi')}</strong>
+              <span>${matchType(m).name} · ${formatDate(m.date)}</span>
             </a>`).join('')}
         </div>
       </section>` : ''}
@@ -100,13 +109,13 @@ function renderHome() {
       </article>
       <article class="feature">
         <div class="feature__icon">${icon('users')}</div>
-        <h3>Cả lớp cùng chơi</h3>
+        <h3>Cả lớp cùng làm</h3>
         <p>Học sinh nhập tên trực tiếp trên lớp. Mỗi bạn một lượt, điểm được tổng hợp riêng.</p>
       </article>
       <article class="feature">
-        <div class="feature__icon">${icon('flag')}</div>
-        <h3>Học qua trò chơi</h3>
-        <p>Đua xe hoặc kéo co: trả lời đúng để cả lớp tiến bước và kéo dây về đích.</p>
+        <div class="feature__icon">${icon('chart-column')}</div>
+        <h3>Điểm rõ từng bạn</h3>
+        <p>Kết thúc lượt làm bài, bảng điểm hiện số câu đúng, tỉ lệ và được lưu vào lịch sử.</p>
       </article>
     </section>`;
 }
@@ -614,7 +623,7 @@ function renderTeacher() {
   refreshSaved();
 }
 
-// ===== Trang thiết lập trận đấu =====
+// ===== Trang thiết lập lượt làm bài =====
 function renderPlay(param) {
   const sets = getSets();
 
@@ -638,15 +647,14 @@ function renderPlay(param) {
   }
 
   const selectedId = sets.some(s => s.id === param) ? param : sets[0].id;
-  let gameId = listGames()[0].id;
   let students = []; // { id, name, color }
   let studentSeq = 0;
 
   app.innerHTML = `
     <div class="page-head">
       <div>
-        <h1 class="page-title">Vào chơi</h1>
-        <p class="page-sub">Chọn bộ câu hỏi, thêm tên học sinh và bắt đầu trận đấu.</p>
+        <h1 class="page-title">Làm bài trắc nghiệm</h1>
+        <p class="page-sub">Chọn bộ câu hỏi, thêm tên học sinh và bắt đầu lượt làm bài.</p>
       </div>
       <a class="btn btn--ghost" href="#/teacher">${icon('pencil-line')} Quản lý câu hỏi</a>
     </div>
@@ -655,7 +663,7 @@ function renderPlay(param) {
       <section class="card">
         <h2 class="card__title">Bộ câu hỏi</h2>
         <label class="field">
-          <span>Chọn bộ để chơi</span>
+          <span>Chọn bộ để làm</span>
           <select class="select" id="pick-set">
             ${sets.map(s => `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${esc(s.title || 'Bộ chưa đặt tên')} (${s.questions.length} câu)</option>`).join('')}
           </select>
@@ -675,20 +683,9 @@ function renderPlay(param) {
       </section>
 
       <section class="card card--wide">
-        <h2 class="card__title">Chọn mini-game</h2>
-        <div class="games">
-          ${listGames().map((g, i) => `
-            <button class="game-pick ${i === 0 ? 'is-active' : ''}" data-game="${g.id}">
-              <span class="badge badge--ok">Sẵn sàng</span>
-              <span class="game-pick__icon">${icon(g.icon)}</span>
-              <strong>${esc(g.name)}</strong>
-              <small>${esc(g.description || '')}</small>
-            </button>`).join('')}
-        </div>
-
         <div class="setup__actions">
           <a class="btn btn--ghost" href="#/">${icon('arrow-left')} Trang chủ</a>
-          <button class="btn btn--primary btn--lg" data-act="start">${icon('rocket')} Bắt đầu chơi</button>
+          <button class="btn btn--primary btn--lg" data-act="start">${icon('play')} Bắt đầu làm bài</button>
         </div>
       </section>
     </div>`;
@@ -729,7 +726,7 @@ function renderPlay(param) {
   function addStudent() {
     const name = studentInput.value.trim().replace(/\s+/g, ' ');
     if (!name) { studentInput.focus(); return; }
-    if (students.length >= MAX_STUDENTS) { toast(`Mỗi trận tối đa ${MAX_STUDENTS} học sinh`); return; }
+    if (students.length >= MAX_STUDENTS) { toast(`Mỗi lượt tối đa ${MAX_STUDENTS} học sinh`); return; }
     if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) {
       toast(`"${name}" đã có trong danh sách`);
       return;
@@ -763,15 +760,6 @@ function renderPlay(param) {
     renderStudents();
   });
 
-  app.querySelectorAll('[data-game]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.disabled) return;
-      gameId = btn.dataset.game;
-      app.querySelectorAll('[data-game]').forEach(b =>
-        b.classList.toggle('is-active', b === btn));
-    });
-  });
-
   app.querySelector('[data-act="start"]').addEventListener('click', () => {
     const set = currentSet();
     if (!set) { toast('Không tìm thấy bộ câu hỏi'); return; }
@@ -782,8 +770,8 @@ function renderPlay(param) {
       return;
     }
 
-    // Lưu trận đấu để tải lại trang vẫn tiếp tục được
-    sessionStorage.setItem(MATCH_KEY, JSON.stringify({ setId: set.id, gameId, students }));
+    // Lưu lượt làm bài để tải lại trang vẫn tiếp tục được
+    sessionStorage.setItem(MATCH_KEY, JSON.stringify({ setId: set.id, students }));
     location.hash = `#/game/${set.id}`;
   });
 
@@ -791,7 +779,7 @@ function renderPlay(param) {
   renderStudents();
 }
 
-// Đọc thông tin trận đấu đã thiết lập
+// Đọc thông tin lượt làm bài đã thiết lập
 function readMatch(setId) {
   try {
     const match = JSON.parse(sessionStorage.getItem(MATCH_KEY) || 'null');
@@ -802,27 +790,26 @@ function readMatch(setId) {
   return null;
 }
 
-// ===== Trang chơi =====
+// ===== Trang làm bài =====
 function renderGame(setId) {
   const set = getSet(setId);
   const match = readMatch(setId);
 
   if (!set || !match || !set.questions.length) {
-    toast('Hãy thiết lập trận đấu trước khi chơi');
+    toast('Hãy thiết lập lượt làm bài trước khi bắt đầu');
     location.hash = '#/play';
     return;
   }
 
-  const info = getGame(match.gameId);
+  const info = QUIZ_MODE;
   const players = match.students;
-  const classPlayer = { ...CLASS_PLAYER };
   const muted = isMuted();
   let quiz = null;
   let current = null;
   let answered = false;
   let timer = null;
   let countdown = null;
-  let tally = new Map(); // điểm từng học sinh trong trận: { correct, total }
+  let tally = new Map(); // điểm từng học sinh trong lượt làm bài: { correct, total }
 
   app.innerHTML = `
     <div class="game">
@@ -846,8 +833,6 @@ function renderGame(setId) {
         </div>
       </div>
 
-      <div class="board" id="board"></div>
-
       <section class="card quiz">
         <div id="turn-slot" class="quiz__top"></div>
         <div class="question-image" id="question-image" hidden></div>
@@ -860,7 +845,6 @@ function renderGame(setId) {
       <div class="overlay" id="overlay" hidden></div>
     </div>`;
 
-  const board = app.querySelector('#board');
   const turnSlot = app.querySelector('#turn-slot');
   const questionImage = app.querySelector('#question-image');
   const questionEl = app.querySelector('#question');
@@ -909,8 +893,6 @@ function renderGame(setId) {
 
   document.addEventListener('fullscreenchange', refreshFullscreenButton);
 
-  const game = getGame(match.gameId);
-
   // Dừng đồng hồ đếm ngược của câu hiện tại
   function stopCountdown() {
     if (countdown !== null) {
@@ -948,10 +930,8 @@ function renderGame(setId) {
     stopCountdown();
     overlay.hidden = true;
     overlay.innerHTML = '';
-    game.destroy();
     quiz = createQuiz(players, set.questions);
     tally = new Map(players.map(p => [p.id, { correct: 0, total: 0 }]));
-    game.init(board, [classPlayer], { questions: set.questions, totalTurns: players.length });
     nextTurn();
   }
 
@@ -1017,7 +997,7 @@ function renderGame(setId) {
     startCountdown(question.timeLimit);
   }
 
-  // Bảng điểm từng học sinh trong trận, xếp theo số câu đúng rồi tỉ lệ đúng
+  // Bảng điểm từng học sinh trong lượt làm bài, xếp theo số câu đúng rồi tỉ lệ đúng
   function scoreRows() {
     return players.map((p, order) => {
       const s = tally.get(p.id) || { correct: 0, total: 0 };
@@ -1057,12 +1037,12 @@ function renderGame(setId) {
     const rows = scoreRows();
     const top = rows[0] || null;
 
-    // Lưu trận vào lịch sử để trang Tổng hợp điểm thống kê
+    // Lưu lượt làm bài vào lịch sử để trang Tổng hợp điểm thống kê
     saveMatch({
       setId: set.id,
       setName: set.title || 'Bộ chưa đặt tên',
-      gameId: match.gameId,
-      gameName: info.name,
+      gameId: QUIZ_MODE.id,
+      gameName: QUIZ_MODE.name,
       students: rows.map(r => ({ id: r.id, name: r.name, color: r.color, correct: r.correct, total: r.total })),
       winner: top ? { id: top.id, name: top.name, color: top.color } : null,
     });
@@ -1075,7 +1055,7 @@ function renderGame(setId) {
         <div class="scoreboard__title">${icon('chart-column')} Tổng hợp điểm</div>
         ${scoreTable(rows, top ? top.id : null)}
         <div class="overlay__actions">
-          <button class="btn btn--primary" data-act="again">${icon('rotate-ccw')} Chơi lại</button>
+          <button class="btn btn--primary" data-act="again">${icon('rotate-ccw')} Làm lại</button>
           <a class="btn btn--ghost" href="#/stats">${icon('chart-column')} Tổng hợp điểm</a>
           <a class="btn btn--ghost" href="#/play/${set.id}">${icon('settings')} Đổi thiết lập</a>
           <a class="btn btn--ghost" href="#/">${icon('house')} Trang chủ</a>
@@ -1084,7 +1064,7 @@ function renderGame(setId) {
     overlay.hidden = false;
   }
 
-  // Chấm đáp án (picked = null khi hết giờ) và cập nhật đường đua
+  // Chấm đáp án (picked = null khi hết giờ) và cộng điểm cho học sinh
   function submitAnswer(picked) {
     if (answered || !current) return;
     answered = true;
@@ -1131,16 +1111,12 @@ function renderGame(setId) {
     }
 
     feedbackEl.innerHTML = result.isCorrect
-      ? game.id === 'tug'
-        ? `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.player.name)} kéo dây về phía lớp.</div>`
-        : `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.player.name)} trả lời đúng.</div>`
+      ? `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.player.name)} trả lời đúng.</div>`
       : picked === null
         ? `<div class="feedback feedback--bad">${icon('timer')} Hết giờ! Đáp án đúng là <strong>${esc(correctAnswerText(question))}</strong>.</div>`
         : `<div class="feedback feedback--bad">${icon('circle-x')} Chưa đúng. Đáp án đúng là <strong>${esc(correctAnswerText(question))}</strong>.</div>`;
 
-    game.onAnswer(classPlayer.id, result.isCorrect);
-
-    // Trận kết thúc khi mọi học sinh đã trả lời xong, không dừng sớm theo đường đua
+    // Lượt làm bài kết thúc khi mọi học sinh đã trả lời xong
     timer = setTimeout(nextTurn, picked === null ? 2200 : 1700);
   }
 
@@ -1164,11 +1140,10 @@ function renderGame(setId) {
 
   startMatch();
 
-  // Dọn hẹn giờ, đồng hồ, game và chế độ toàn màn hình khi rời trang
+  // Dọn hẹn giờ, đồng hồ và chế độ toàn màn hình khi rời trang
   return () => {
     clearTimeout(timer);
     stopCountdown();
-    game.destroy();
     document.removeEventListener('fullscreenchange', refreshFullscreenButton);
     if (document.fullscreenElement) {
       try { document.exitFullscreen?.()?.catch?.(() => {}); } catch { /* bỏ qua */ }
@@ -1180,19 +1155,19 @@ function renderGame(setId) {
 function renderStats() {
   const history = getHistory();
   const sum = summarize(history);
-  const gameInfo = id => getGame(id);
 
-  // Mỗi trận hiển thị bảng điểm các học sinh, xếp theo số câu đúng
+  // Mỗi lượt làm bài hiển thị bảng điểm các học sinh, xếp theo số câu đúng
   function matchCard(m) {
     const players = m.students || m.teams || [];
     const rows = [...players].sort((a, b) =>
       (b.correct || 0) - (a.correct || 0) ||
       (b.total ? b.correct / b.total : 0) - (a.total ? a.correct / a.total : 0));
+    const type = matchType(m);
 
     return `
       <article class="match-card">
         <div class="match-card__head">
-          <span class="game__tag">${icon(gameInfo(m.gameId).icon)} ${gameInfo(m.gameId).name}</span>
+          <span class="game__tag">${icon(type.icon)} ${esc(type.name)}</span>
           <strong class="match-card__set">${esc(m.setName || 'Bộ câu hỏi')}</strong>
           <span class="match-card__date">${icon('calendar-days')} ${formatDate(m.date)}</span>
         </div>
@@ -1223,17 +1198,17 @@ function renderStats() {
     <div class="page-head">
       <div>
         <h1 class="page-title">Tổng hợp điểm</h1>
-        <p class="page-sub">Bảng điểm các trận đã chơi, lưu ngay trên trình duyệt này.</p>
+        <p class="page-sub">Bảng điểm các lượt làm bài, lưu ngay trên trình duyệt này.</p>
       </div>
       <div class="hero__actions" style="margin:0">
         ${history.length ? `<button class="btn btn--ghost" data-act="clear-history">${icon('trash-2')} Xóa lịch sử</button>` : ''}
-        <a class="btn btn--primary" href="#/play">${icon('gamepad-2')} Vào chơi</a>
+        <a class="btn btn--primary" href="#/play">${icon('play')} Vào làm bài</a>
       </div>
     </div>
 
     ${history.length ? `
       <section class="stats">
-        <div class="stat"><strong>${sum.matches}</strong><span>Trận đã hoàn thành</span></div>
+        <div class="stat"><strong>${sum.matches}</strong><span>Lượt đã hoàn thành</span></div>
         <div class="stat"><strong>${sum.totalQuestions}</strong><span>Câu đã trả lời</span></div>
         <div class="stat"><strong>${sum.accuracy}%</strong><span>Tỉ lệ trả lời đúng</span></div>
       </section>
@@ -1242,7 +1217,7 @@ function renderStats() {
         <h2 class="card__title">${icon('medal')} Bảng xếp hạng học sinh</h2>
         <div class="scoreboard scoreboard--teams">
           <div class="scoreboard__head">
-            <span>Hạng</span><span>Học sinh</span><span>Trận</span><span>Đúng</span><span>Tỉ lệ</span>
+            <span>Hạng</span><span>Học sinh</span><span>Lượt</span><span>Đúng</span><span>Tỉ lệ</span>
           </div>
           ${sum.ranking.map((t, i) => `
             <div class="scoreboard__row">
@@ -1259,22 +1234,22 @@ function renderStats() {
       </section>
 
       <section class="stats-history">
-        <h2 class="card__title">${icon('history')} Lịch sử trận đấu</h2>
+        <h2 class="card__title">${icon('history')} Lịch sử làm bài</h2>
         ${history.map(matchCard).join('')}
       </section>` : `
       <section class="empty">
         <div class="empty__icon">${icon('chart-column')}</div>
-        <h2>Chưa có trận nào</h2>
-        <p>Hoàn thành một trận đua xe hoặc kéo co, bảng điểm sẽ xuất hiện ở đây.</p>
+        <h2>Chưa có lượt làm bài nào</h2>
+        <p>Hoàn thành một lượt trắc nghiệm, bảng điểm sẽ xuất hiện ở đây.</p>
         <div class="hero__actions" style="justify-content:center">
-          <a class="btn btn--primary" href="#/play">${icon('play')} Vào chơi</a>
+          <a class="btn btn--primary" href="#/play">${icon('play')} Vào làm bài</a>
         </div>
       </section>`}`;
 
   app.querySelector('[data-act="clear-history"]')?.addEventListener('click', () => {
-    if (!confirm('Xóa toàn bộ lịch sử trận đấu?')) return;
+    if (!confirm('Xóa toàn bộ lịch sử làm bài?')) return;
     clearHistory();
-    toast('Đã xóa lịch sử trận đấu');
+    toast('Đã xóa lịch sử làm bài');
     renderStats();
   });
 }

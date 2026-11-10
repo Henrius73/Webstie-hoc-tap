@@ -181,42 +181,6 @@ export function blankSet() {
   return { id: uid(), title: '', subject: '', questions: [blankQuestion()] };
 }
 
-// ===== Nhập / xuất JSON =====
-
-// Cấp id mới cho bộ và từng câu để nhập thành bản sao, không ghi đè dữ liệu đang có
-function withFreshIds(set) {
-  return {
-    ...set,
-    id: uid(),
-    questions: set.questions.map(q => ({ ...q, id: uid() })),
-  };
-}
-
-// Đọc JSON: chấp nhận một bộ, mảng bộ, hoặc object { sets: [...] }
-export function parseSetsJson(text) {
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error('Tệp không phải JSON hợp lệ');
-  }
-
-  const list = Array.isArray(data) ? data : Array.isArray(data?.sets) ? data.sets : [data];
-  if (!list.length) throw new Error('Tệp không có bộ câu hỏi nào');
-  return list.map(raw => withFreshIds(normalizeSet(raw)));
-}
-
-// Gói dữ liệu xuất kèm thông tin phiên bản để sau này dễ nâng cấp
-export function buildExportData(sets = getSets()) {
-  return {
-    app: 'HocVui',
-    type: 'question-sets',
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    sets,
-  };
-}
-
 // Bộ mẫu để chơi thử nhanh
 export function sampleSet() {
   return {

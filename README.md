@@ -34,7 +34,7 @@ serve.js               server tĩnh để chạy local
 ## Nhập / xuất câu hỏi
 
 - **Excel (.xlsx)** là định dạng chính để soạn hàng loạt: hỗ trợ đủ 3 loại câu (trắc nghiệm, đúng/sai, điền từ), ảnh và thời gian.
-- **CSV** 6 cột vẫn dùng được cho câu trắc nghiệm; **JSON** dùng để sao lưu/chia sẻ toàn bộ bộ câu hỏi.
+- **CSV** 6 cột vẫn dùng được cho câu trắc nghiệm.
 
 ### Định dạng Excel
 
@@ -76,8 +76,8 @@ Mỗi sheet là một bộ câu hỏi, dòng 1 là tiêu đề gồm 10 cột:
 
 - PWA yêu cầu **HTTPS** (Cloudflare Pages/Netlify đều tự cấp).
 - Mở trang trên điện thoại, kiểm tra nút cài ứng dụng của trình duyệt và thử tắt mạng rồi mở lại.
-- Dữ liệu câu hỏi nằm trong `localStorage` **theo từng tên miền**. Trước khi đổi tên miền hoặc xóa dữ liệu trình duyệt, hãy vào trình soạn và **Xuất JSON** để sao lưu; sau đó **Nhập JSON** ở tên miền mới. Có thể dùng **Xuất Excel** để mở/sửa câu hỏi bằng Excel hoặc Google Sheets.
-- Khi sửa HTML/CSS/JS/SW: tăng số `CACHE` trong `sw.js` (ví dụ `hocvui-v4` → `hocvui-v5`) để buộc trình duyệt tải bản mới.
+- Dữ liệu câu hỏi nằm trong `localStorage` **theo từng tên miền**. Trước khi đổi tên miền hoặc xóa dữ liệu trình duyệt, hãy vào trình soạn và **Xuất Excel** để sao lưu. Khi chuyển sang tên miền mới, tạo bộ mới rồi **Nhập Excel** từng sheet (mỗi sheet là một bộ) và bấm Lưu.
+- Khi sửa HTML/CSS/JS/SW: tăng số `CACHE` trong `sw.js` (ví dụ `hocvui-v5` → `hocvui-v6`) để buộc trình duyệt tải bản mới.
 
 ## Kiểm thử
 

@@ -447,7 +447,7 @@ h1, h2, h3, p { margin: 0; }
 
 .select,
 .field input,
-.team-input input,
+.student-add input,
 .q__text,
 .opt-input {
   width: 100%;
@@ -500,34 +500,55 @@ h1, h2, h3, p { margin: 0; }
 
 .seg__btn:disabled { opacity: .4; cursor: not-allowed; }
 
-.team-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+/* Nhập tên học sinh tham gia */
+.student-add { display: flex; gap: 8px; }
+.student-add input { flex: 1; min-width: 0; }
+.student-add .btn { flex: none; white-space: nowrap; }
 
-.team-input {
-  display: flex;
+.students { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+.student-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 6px 6px 6px 12px;
-  background: #fbfbff;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
+  gap: 7px;
+  padding: 5px 6px 5px 11px;
+  background: color-mix(in srgb, var(--team) 12%, #fff);
+  border: 1px solid color-mix(in srgb, var(--team) 30%, #fff);
+  border-radius: 999px;
+  color: var(--team);
+  font-size: .86rem;
+  font-weight: 700;
 }
 
-.team-input:focus-within {
-  background: #fff;
-  border-color: #a78bfa;
-  box-shadow: 0 0 0 4px rgba(139, 92, 246, .14);
-}
-
-.team-input__dot {
+.student-chip__dot {
   flex: none;
-  width: 12px;
-  height: 12px;
+  width: 9px;
+  height: 9px;
   background: var(--team);
   border-radius: 50%;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--team) 18%, transparent);
 }
 
-.team-input input { padding: 8px 6px; background: transparent; border: none; box-shadow: none !important; }
+.student-chip__remove {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  opacity: .65;
+  transition: .15s;
+}
+
+.student-chip__remove:hover {
+  background: color-mix(in srgb, var(--team) 18%, #fff);
+  opacity: 1;
+}
+
+.student-chip__remove .icon { width: 14px; height: 14px; }
 
 .games { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -1211,9 +1232,11 @@ h1, h2, h3, p { margin: 0; }
   position: fixed;
   inset: 0;
   z-index: 60;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 20px;
+  overflow-y: auto;
   background: rgba(24, 20, 54, .55);
   backdrop-filter: blur(6px);
 }
@@ -1222,6 +1245,7 @@ h1, h2, h3, p { margin: 0; }
 
 .overlay__card {
   width: min(430px, 100%);
+  margin: auto;
   padding: 34px 28px;
   background: #fff;
   border-radius: 26px;

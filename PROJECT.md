@@ -19,14 +19,14 @@
 
 **Trong phạm vi (giai đoạn đầu)**
 - Chạy hoàn toàn trên trình duyệt, không cần backend
-- 2 đội chơi trên cùng một màn hình
+- Cả lớp cùng chơi trên một màn hình: học sinh nhập tên và trả lời theo lượt
 - Câu hỏi trắc nghiệm 4 đáp án
 - Lưu bộ câu hỏi ngay trên máy (ngoại tuyến)
 
 **Ngoài phạm vi (làm sau)**
 - Tài khoản, đăng nhập
 - Phòng chơi online bằng mã
-- Thống kê kết quả theo học sinh
+- Đồng bộ dữ liệu giữa nhiều thiết bị
 - Thanh toán, quảng cáo
 
 ---
@@ -124,13 +124,14 @@ game-hoc-tap/
 
 Dữ liệu cũ chưa có `type` được tự hiểu là `choice`. Câu `fill` được chấm sau khi cắt khoảng trắng, gộp khoảng trắng giữa, không phân biệt hoa/thường, chuẩn hóa NFC; **giữ dấu tiếng Việt**.
 
-**Đội chơi**
+**Học sinh trong trận**
 ```json
-{ "id": "team-1", "name": "Đội Sao Mai", "color": "#e63946", "score": 0, "progress": 0 }
+{ "id": "student-1", "name": "Minh Anh", "color": "#7c3aed", "correct": 1, "total": 1 }
 ```
 
 **Quy ước**
-- `progress` chạy từ 0 đến 100.
+- Mỗi học sinh trả lời đúng **1 câu** trong một trận; trận kết thúc khi mọi học sinh đã trả lời.
+- Đường đua là của **cả lớp**: mỗi câu đúng tiến 1 bước, tối đa bằng số học sinh.
 - `correctIndex` tính từ 0.
 - Mọi dữ liệu nhập từ ngoài (Excel, CSV) phải được kiểm tra hợp lệ trước khi dùng.
 
@@ -168,13 +169,14 @@ export default {
   id: "race-car",
   name: "Đua xe",
 
-  // Dựng giao diện game vào container, nhận danh sách đội
-  init(container, teams, options) {},
+  // Dựng giao diện game vào container; nhận người chơi đại diện cả lớp
+  // và options = { questions, totalTurns }
+  init(container, players, options) {},
 
-  // Gọi khi một đội trả lời; isCorrect = true thì tiến lên
-  onAnswer(teamId, isCorrect) {},
+  // Gọi khi học sinh trả lời; isCorrect = true thì cả lớp tiến lên
+  onAnswer(playerId, isCorrect) {},
 
-  // Trả về true nếu ván đã kết thúc, kèm đội thắng
+  // Trả về người chơi khi về đích (toàn bộ câu đúng), ngược lại null
   checkWin() {},
 
   // Dọn dẹp khi thoát game
@@ -183,10 +185,10 @@ export default {
 ```
 
 **Luồng một ván chơi**
-1. Chọn bộ câu hỏi → chọn game → đặt tên 2 đội.
-2. `quiz.js` đưa từng câu cho đội đến lượt.
-3. Đội chọn đáp án → `quiz.js` kiểm tra → gọi `game.onAnswer(teamId, isCorrect)`.
-4. `game.checkWin()` → nếu có đội thắng thì sang màn hình kết quả.
+1. Chọn bộ câu hỏi → chọn game → nhập tên từng học sinh tham gia.
+2. `quiz.js` đưa từng câu cho học sinh đến lượt (mỗi bạn 1 câu).
+3. Học sinh chọn đáp án → `quiz.js` kiểm tra → gọi `game.onAnswer('class', isCorrect)`.
+4. Khi mọi học sinh đã trả lời, hiện bảng tổng hợp điểm từng học sinh và lưu lịch sử.
 
 **Nguyên tắc:** `quiz.js` không biết gì về hình ảnh game, game không biết gì về dữ liệu câu hỏi. Hai phần chỉ giao tiếp qua `onAnswer`.
 
@@ -196,8 +198,8 @@ export default {
 
 | Game | Cách chơi | Trạng thái |
 |---|---|---|
-| Đua xe | Đúng → xe tiến 10% | [x] đã xong |
-| Kéo co | Đúng → dây kéo về phía mình | [x] đã xong |
+| Đua xe | Đúng → xe của cả lớp tiến 1 bước | [x] đã xong |
+| Kéo co | Đúng → kéo dây về phía lớp; sai bị thử thách kéo lại | [x] đã xong |
 | Đua vịt | Giống đua xe, đổi giao diện | [x] đã xong |
 | Đua thuyền rồng | Giống đua xe, nhiều làn | [ ] chưa làm |
 | Nhảy bao bố | Đúng → nhảy 1 bước | [x] đã xong |
@@ -226,7 +228,7 @@ export default {
 
 **Mốc 1: Quiz engine + game đua xe (khoảng 1 tuần)**
 - [x] Dựng khung trang, router, định dạng dữ liệu, 5 câu mẫu
-- [x] Quiz engine: lượt chơi, điểm, 2 đội
+- [x] Quiz engine: chia lượt, chấm điểm theo từng học sinh
 - [x] Game đua xe với hoạt họa CSS
 - [x] Màn hình thắng, chơi lại, âm thanh cơ bản
 - [ ] Deploy lên hosting và thử trên điện thoại
@@ -283,6 +285,10 @@ export default {
 | 2026-11-10 | Nhập Excel chỉ đọc sheet đầu tiên, thêm câu hợp lệ vào bộ đang soạn và báo lỗi theo số dòng Excel, không tự lưu | Tránh ghi đè ngoài ý muốn; giáo viên xem/sửa rồi mới bấm Lưu |
 | 2026-11-10 | Xuất Excel mỗi bộ một sheet; xuất tất cả tạo workbook nhiều sheet theo thứ tự danh sách | Một tệp sao lưu đầy đủ, mở được bằng Excel/Google Sheets và nhập lại được |
 | 2026-11-10 | Bỏ hoàn toàn nhập/xuất JSON; chỉ dùng Excel `.xlsx` để nhập/xuất tệp | Đơn giản hóa giao diện theo yêu cầu; tránh hai định dạng trùng chức năng |
+| 2026-11-10 | Bỏ đội chơi; giáo viên nhập tên từng học sinh (2–40 bạn) và mỗi bạn trả lời 1 câu | Phù hợp lớp đông và mục tiêu tổng hợp điểm theo từng học sinh; không cần chia đội thủ công |
+| 2026-11-10 | Đường đua đại diện cả lớp (`{ id: 'class', name: 'Cả lớp' }`), tối đa số bước = số học sinh; kéo co là "Cả lớp vs Thử thách" | Một làn không thể hiện 20–40 học sinh; vẫn giữ được cảm giác thi đua và 4 mini-game |
+| 2026-11-10 | Trận kết thúc khi mọi học sinh đã trả lời, không dừng sớm theo `checkWin()` | Đảm bảo mọi bạn đều có điểm; `checkWin()` chỉ còn ý nghĩa khi cả lớp trả lời đúng hết |
+| 2026-11-10 | Lịch sử trận mới lưu `students`; trận cũ đọc `teams` để tương thích ngược | Không làm mất lịch sử đã có trên máy giáo viên |
 | | | |
 
 ---
@@ -300,14 +306,14 @@ export default {
 
 ## 12. Trạng thái hiện tại *(cập nhật cuối mỗi phiên)*
 
-**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel); tiếp theo deploy và thử trên điện thoại.
+**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel); vừa chuyển từ đội chơi sang danh sách học sinh. Tiếp theo deploy và thử trên điện thoại.
 
 **Đã xong:**
 - Khung trang, sidebar, router hash, responsive (desktop / tablet / mobile), icon Lucide ngoại tuyến.
-- Quiz engine: chia lượt, chấm điểm, 2–4 đội (kéo co đúng 2 đội).
+- Quiz engine: chia lượt theo từng học sinh, mỗi bạn trả lời 1 câu; trận kết thúc khi mọi bạn đã trả lời.
 - Game đua xe + kéo co, màn thắng, chơi lại, tổng hợp điểm và lịch sử trận đấu.
-- Game Đua vịt tri thức (`duck`): dùng lại khung đường đua, đổi sang mặt nước, vịt bơi 1 bước mỗi câu đúng, về đích sau 6 bước.
-- Game Nhảy bao bố (`sack`): đường đua bao tải chia ô, nhảy 1 bước mỗi câu đúng, về đích sau 6 bước.
+- Game Đua vịt tri thức (`duck`): dùng lại khung đường đua của lớp, đổi sang mặt nước, vịt bơi 1 bước mỗi câu đúng.
+- Game Nhảy bao bố (`sack`): đường đua bao tải chia ô của lớp, nhảy 1 bước mỗi câu đúng.
 - Trình soạn câu hỏi: tạo/sửa/xóa bộ, lưu localStorage, bộ mẫu.
 - Ảnh minh họa + thời gian cho từng câu: ô nhập URL ảnh (có xem trước), ô thời gian 0–600 giây; màn chơi hiện ảnh, đếm ngược theo `timeLimit`, hết giờ tính là trả lời sai và tự chuyển lượt; `timeLimit = 0` thì không hiện đồng hồ.
 - Âm thanh hiệu ứng (`src/sound.js`): Web Audio tạo tiếng đúng (2 nốt đi lên), sai/hết giờ (1 nốt đi xuống), thắng (4 nốt); bật mặc định, nút tắt/bật ở màn chơi, ghi nhớ lựa chọn.
@@ -321,7 +327,10 @@ export default {
 - Chuẩn hóa dữ liệu theo mục 5: `{ id, title, subject, questions: [{ id, type, text, options, correctIndex, answers, image, timeLimit }] }`.
 - Tự chuyển dữ liệu cũ dùng `name`: giữ id bộ cũ, cấp id câu, `type = 'choice'`, `answers = []`, `image = null`, `timeLimit = 0`; bỏ qua bộ hỏng thay vì làm sập app.
 - Đã bỏ nhập/xuất JSON: xóa nút Nhập JSON, nút Xuất JSON và code `parseSetsJson`/`buildExportData`; Excel là định dạng nhập/xuất tệp duy nhất.
-- Chuẩn hóa interface game theo mục 6: thêm registry `src/games/index.js`; mỗi game export `{ id, name, icon, teamLimit, init(container, teams, options), onAnswer(teamId, isCorrect), checkWin(), destroy() }`; `checkWin()` trả về đội thắng hoặc `null`.
+- Chuẩn hóa interface game theo mục 6: thêm registry `src/games/index.js`; mỗi game export `{ id, name, icon, init(container, players, options), onAnswer(playerId, isCorrect), checkWin(), destroy() }`; `checkWin()` trả về người chơi khi về đích hoặc `null`.
+- Trang thiết lập nhập tên học sinh: ô nhập + nút **Thêm** (Enter cũng thêm), chip tên kèm nút xóa, tối đa 40 bạn, không trùng tên, cần ít nhất 2 bạn để bắt đầu.
+- Đường đua chung của lớp: mỗi câu đúng tiến 1 bước với tối đa bằng số học sinh; kéo co là "Cả lớp vs Thử thách". Màn kết thúc hiện bảng tổng hợp điểm từng học sinh (hạng, đúng/tổng, tỉ lệ) và lưu vào lịch sử; trang Tổng hợp điểm xếp hạng theo học sinh.
+- Kiểm thử tự động qua CDP: thêm/xóa/trùng tên, chặn dưới 2 bạn, chơi trọn 4 game, bảng điểm cuối trận, lịch sử mới và cũ, xếp hạng học sinh, responsive 390px, overlay cuộn được với lớp 40 bạn, PWA ngoại tuyến với cache `hocvui-v6`; không có lỗi Console.
 
 **Đang dở:**
 - Chưa deploy thật lên hosting.

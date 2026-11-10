@@ -1,6 +1,6 @@
 # Học Vui – Đấu trí cùng mini-game
 
-Ứng dụng quiz trên trình duyệt cho lớp học: soạn bộ câu hỏi, chia đội, chọn mini-game và chơi. Không cần backend, dữ liệu lưu trong `localStorage`; chạy được ngoại tuyến sau lần mở đầu tiên.
+Ứng dụng quiz trên trình duyệt cho lớp học: soạn bộ câu hỏi, nhập tên học sinh, chọn mini-game và chơi. Không cần backend, dữ liệu lưu trong `localStorage`; chạy được ngoại tuyến sau lần mở đầu tiên.
 
 ## Chạy thử ở máy
 
@@ -53,6 +53,13 @@ Mỗi sheet là một bộ câu hỏi, dòng 1 là tiêu đề gồm 10 cột:
 - **Nhập Excel** đọc sheet đầu tiên, thêm câu hợp lệ vào bộ đang soạn và báo lỗi theo số dòng Excel. Vẫn nhận file 6 cột cũ (có hoặc không có tiêu đề).
 - **Xuất Excel** ở từng bộ tạo file một sheet; nút **Excel** ở danh sách bộ tạo workbook nhiều sheet (mỗi bộ một sheet).
 - Chỉ hỗ trợ `.xlsx` hiện đại; file `.xls` cũ cần lưu lại thành `.xlsx` trước khi nhập.
+
+## Chơi cùng cả lớp
+
+1. Vào **Vào chơi**, chọn bộ câu hỏi và mini-game.
+2. Nhập tên từng học sinh rồi bấm **Thêm** (hoặc Enter). Cần ít nhất 2 bạn, tối đa 40 bạn; tên trùng sẽ bị bỏ qua.
+3. Bấm **Bắt đầu chơi**: mỗi học sinh trả lời 1 câu theo lượt. Đường đua đại diện cả lớp, mỗi câu đúng tiến 1 bước.
+4. Khi mọi bạn đã trả lời, màn kết quả hiện bảng điểm từng học sinh; trận được lưu vào **Tổng hợp điểm** (xếp hạng theo học sinh).
 
 ## Deploy
 

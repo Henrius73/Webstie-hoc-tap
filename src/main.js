@@ -10,7 +10,10 @@ import { getHistory, saveMatch, clearHistory, summarize, formatDate } from './st
 import { playCorrect, playWrong, playWin, isMuted, toggleMuted } from './sound.js';
 
 const app = document.getElementById('app');
-const TEAM_COLORS = ['#7c3aed', '#db2777', '#0284c7', '#d97706'];
+const STUDENT_COLORS = ['#7c3aed', '#db2777', '#0284c7', '#d97706', '#059669', '#dc2626', '#0891b2', '#9333ea'];
+const MAX_STUDENTS = 40;
+// Người chơi đại diện cả lớp trên đường đua
+const CLASS_PLAYER = { id: 'class', name: 'Cả lớp', color: '#7c3aed' };
 const MATCH_KEY = 'hocvui.match.v1';
 
 let cleanupPage = null;
@@ -26,8 +29,8 @@ function renderHome() {
       <div>
         <span class="hero__eyebrow">${icon('sparkles')} Học mà chơi · Chơi mà học</span>
         <h1>Lớp học sôi động cùng <em>mini-game</em> đấu trí</h1>
-        <p>Giáo viên tạo bộ câu hỏi trắc nghiệm trong vài phút. Học sinh chia đội,
-          trả lời đúng để đưa đội mình dẫn trước — kiến thức vào đầu, tiếng cười ở lại lớp.</p>
+        <p>Giáo viên tạo bộ câu hỏi trắc nghiệm trong vài phút. Học sinh nhập tên để tham gia,
+          cả lớp cùng trả lời và tiến về đích — kiến thức vào đầu, tiếng cười ở lại lớp.</p>
         <div class="hero__actions">
           <a class="btn btn--primary btn--lg" href="#/teacher">${icon('pencil-line')} Tạo bộ câu hỏi</a>
           <a class="btn btn--ghost btn--lg" href="#/play">${icon('gamepad-2')} Vào chơi ngay</a>
@@ -37,7 +40,7 @@ function renderHome() {
         <span class="hero__spark hero__spark--a">${icon('star')}</span>
         <span class="hero__spark hero__spark--b">${icon('target')}</span>
         <div class="mock">
-          <span class="mock__team">${icon('car')} Đội Sao Băng · Lượt của bạn</span>
+          <span class="mock__team">${icon('car')} Minh Anh · Lượt của bạn</span>
           <div class="mock__q">Hành tinh nào gần Mặt Trời nhất?</div>
           <div class="mock__opts">
             <span>Kim Tinh</span>
@@ -83,7 +86,7 @@ function renderHome() {
         <div class="recent__list">
           ${history.slice(0, 3).map(m => `
             <a class="recent__item" href="#/stats">
-              <strong>${esc(m.winner?.name || 'Trận đấu')} thắng · ${esc(m.setName || 'Bộ câu hỏi')}</strong>
+              <strong>${m.winner?.name ? `${esc(m.winner.name)} dẫn đầu` : 'Trận đấu'} · ${esc(m.setName || 'Bộ câu hỏi')}</strong>
               <span>${getGame(m.gameId).name} · ${formatDate(m.date)}</span>
             </a>`).join('')}
         </div>
@@ -97,13 +100,13 @@ function renderHome() {
       </article>
       <article class="feature">
         <div class="feature__icon">${icon('users')}</div>
-        <h3>Chia đội linh hoạt</h3>
-        <p>Từ 2 đến 4 đội, mỗi đội một màu riêng. Lượt chơi được xoay vòng tự động.</p>
+        <h3>Cả lớp cùng chơi</h3>
+        <p>Học sinh nhập tên trực tiếp trên lớp. Mỗi bạn một lượt, điểm được tổng hợp riêng.</p>
       </article>
       <article class="feature">
         <div class="feature__icon">${icon('flag')}</div>
         <h3>Học qua trò chơi</h3>
-        <p>Đua xe hoặc kéo co: trả lời đúng để tiến bước và kéo dây về phía đội mình.</p>
+        <p>Đua xe hoặc kéo co: trả lời đúng để cả lớp tiến bước và kéo dây về đích.</p>
       </article>
     </section>`;
 }
@@ -635,15 +638,15 @@ function renderPlay(param) {
   }
 
   const selectedId = sets.some(s => s.id === param) ? param : sets[0].id;
-  let teamCount = 2;
   let gameId = listGames()[0].id;
-  let teamNames = ['Đội 1', 'Đội 2', 'Đội 3', 'Đội 4'];
+  let students = []; // { id, name, color }
+  let studentSeq = 0;
 
   app.innerHTML = `
     <div class="page-head">
       <div>
         <h1 class="page-title">Vào chơi</h1>
-        <p class="page-sub">Chọn bộ câu hỏi, chia đội và bắt đầu trận đấu.</p>
+        <p class="page-sub">Chọn bộ câu hỏi, thêm tên học sinh và bắt đầu trận đấu.</p>
       </div>
       <a class="btn btn--ghost" href="#/teacher">${icon('pencil-line')} Quản lý câu hỏi</a>
     </div>
@@ -661,13 +664,14 @@ function renderPlay(param) {
       </section>
 
       <section class="card">
-        <h2 class="card__title">Đội chơi</h2>
-        <div class="seg" id="team-count">
-          ${[2, 3, 4].map(n => `
-            <button class="seg__btn ${n === teamCount ? 'is-active' : ''}" data-count="${n}">${n} đội</button>`).join('')}
+        <h2 class="card__title">Học sinh tham gia</h2>
+        <div class="student-add">
+          <input id="student-name" type="text" maxlength="20" autocomplete="off"
+            placeholder="Nhập tên học sinh..." aria-label="Tên học sinh" />
+          <button class="btn btn--primary btn--sm" data-act="add-student">${icon('plus')} Thêm</button>
         </div>
-        <p class="muted" id="team-hint" style="margin-top:8px;font-size:.82rem"></p>
-        <div class="team-inputs" id="team-inputs" style="margin-top:12px"></div>
+        <p class="muted" id="student-hint" style="margin-top:8px;font-size:.82rem"></p>
+        <div class="students" id="students"></div>
       </section>
 
       <section class="card card--wide">
@@ -691,9 +695,9 @@ function renderPlay(param) {
 
   const pickSet = app.querySelector('#pick-set');
   const setInfo = app.querySelector('#set-info');
-  const teamInputs = app.querySelector('#team-inputs');
-  const countSeg = app.querySelector('#team-count');
-  const teamHint = app.querySelector('#team-hint');
+  const studentList = app.querySelector('#students');
+  const studentHint = app.querySelector('#student-hint');
+  const studentInput = app.querySelector('#student-name');
 
   function currentSet() {
     return getSet(pickSet.value);
@@ -702,54 +706,61 @@ function renderPlay(param) {
   function updateSetInfo() {
     const set = currentSet();
     setInfo.textContent = set
-      ? `Bộ này có ${set.questions.length} câu hỏi. Mỗi câu đúng giúp đội tiến 1 bước.`
+      ? `Bộ này có ${set.questions.length} câu hỏi. Mỗi học sinh trả lời 1 câu.`
       : '';
   }
 
-  // Vẽ ô nhập tên đội, giữ lại tên đã nhập khi đổi số đội
-  function renderTeamInputs() {
-    teamInputs.innerHTML = Array.from({ length: teamCount }, (_, i) => `
-      <label class="team-input">
-        <span class="team-input__dot" style="--team:${TEAM_COLORS[i]}"></span>
-        <input type="text" data-team="${i}" maxlength="20"
-          value="${esc(teamNames[i] || `Đội ${i + 1}`)}" placeholder="Tên đội ${i + 1}" />
-      </label>`).join('');
+  // Vẽ danh sách học sinh đã thêm
+  function renderStudents() {
+    studentList.innerHTML = students.length ? students.map((s, i) => `
+      <span class="student-chip" style="--team:${s.color}">
+        <span class="student-chip__dot"></span>
+        <span class="student-chip__name">${esc(s.name)}</span>
+        <button class="student-chip__remove" data-remove="${i}"
+          title="Xóa ${esc(s.name)}" aria-label="Xóa ${esc(s.name)}">${icon('circle-x')}</button>
+      </span>`).join('') : '<p class="muted" style="font-size:.86rem">Chưa có học sinh nào. Nhập tên rồi bấm Thêm.</p>';
+
+    studentHint.textContent = students.length
+      ? `${students.length} học sinh · mỗi bạn trả lời 1 câu${students.length < 2 ? ' · cần thêm ít nhất 1 bạn' : ''}.`
+      : 'Thêm ít nhất 2 học sinh để bắt đầu.';
   }
 
-  // Game có thể giới hạn số đội (kéo co: đúng 2 đội)
-  function updateTeamLimit() {
-    const limit = getGame(gameId).teamLimit;
-    countSeg.querySelectorAll('[data-count]').forEach(btn => {
-      btn.disabled = limit !== null && Number(btn.dataset.count) !== limit;
-    });
-
-    if (limit !== null && teamCount !== limit) {
-      teamCount = limit;
-      countSeg.querySelectorAll('.seg__btn').forEach(btn =>
-        btn.classList.toggle('is-active', Number(btn.dataset.count) === limit));
-      renderTeamInputs();
+  // Thêm một học sinh từ ô nhập; bỏ qua tên trống hoặc trùng
+  function addStudent() {
+    const name = studentInput.value.trim().replace(/\s+/g, ' ');
+    if (!name) { studentInput.focus(); return; }
+    if (students.length >= MAX_STUDENTS) { toast(`Mỗi trận tối đa ${MAX_STUDENTS} học sinh`); return; }
+    if (students.some(s => s.name.toLowerCase() === name.toLowerCase())) {
+      toast(`"${name}" đã có trong danh sách`);
+      return;
     }
 
-    const game = getGame(gameId);
-    teamHint.textContent = game.teamLimit !== null
-      ? `${game.name} là màn so tài của đúng ${game.teamLimit} đội.`
-      : 'Bạn có thể chọn từ 2 đến 4 đội.';
+    students.push({
+      id: `student-${++studentSeq}`,
+      name,
+      color: STUDENT_COLORS[students.length % STUDENT_COLORS.length],
+    });
+    studentInput.value = '';
+    studentInput.focus();
+    renderStudents();
   }
 
   pickSet.addEventListener('change', updateSetInfo);
 
-  teamInputs.addEventListener('input', e => {
-    if (e.target.dataset.team === undefined) return;
-    teamNames[Number(e.target.dataset.team)] = e.target.value;
+  // Enter trong ô nhập cũng thêm học sinh
+  studentInput.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    addStudent();
   });
 
-  countSeg.addEventListener('click', e => {
-    const btn = e.target.closest('[data-count]');
-    if (!btn || btn.disabled) return;
-    teamCount = Number(btn.dataset.count);
-    countSeg.querySelectorAll('.seg__btn').forEach(b =>
-      b.classList.toggle('is-active', b === btn));
-    renderTeamInputs();
+  app.querySelector('[data-act="add-student"]').addEventListener('click', addStudent);
+
+  studentList.addEventListener('click', e => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    students.splice(Number(btn.dataset.remove), 1);
+    renderStudents();
   });
 
   app.querySelectorAll('[data-game]').forEach(btn => {
@@ -758,7 +769,6 @@ function renderPlay(param) {
       gameId = btn.dataset.game;
       app.querySelectorAll('[data-game]').forEach(b =>
         b.classList.toggle('is-active', b === btn));
-      updateTeamLimit();
     });
   });
 
@@ -766,30 +776,26 @@ function renderPlay(param) {
     const set = currentSet();
     if (!set) { toast('Không tìm thấy bộ câu hỏi'); return; }
     if (!set.questions.length) { toast('Bộ câu hỏi đang trống'); return; }
-
-    const game = getGame(gameId);
-    const count = game.teamLimit ?? teamCount;
-    const teams = Array.from({ length: count }, (_, i) => ({
-      id: `team-${i + 1}`,
-      name: (teamNames[i] || '').trim() || `Đội ${i + 1}`,
-      color: TEAM_COLORS[i],
-    }));
+    if (students.length < 2) {
+      toast('Cần ít nhất 2 học sinh để bắt đầu');
+      studentInput.focus();
+      return;
+    }
 
     // Lưu trận đấu để tải lại trang vẫn tiếp tục được
-    sessionStorage.setItem(MATCH_KEY, JSON.stringify({ setId: set.id, gameId, teams }));
+    sessionStorage.setItem(MATCH_KEY, JSON.stringify({ setId: set.id, gameId, students }));
     location.hash = `#/game/${set.id}`;
   });
 
   updateSetInfo();
-  renderTeamInputs();
-  updateTeamLimit();
+  renderStudents();
 }
 
 // Đọc thông tin trận đấu đã thiết lập
 function readMatch(setId) {
   try {
     const match = JSON.parse(sessionStorage.getItem(MATCH_KEY) || 'null');
-    if (match && match.setId === setId && Array.isArray(match.teams) && match.teams.length) {
+    if (match && match.setId === setId && Array.isArray(match.students) && match.students.length) {
       return match;
     }
   } catch { /* dữ liệu hỏng thì bỏ qua */ }
@@ -808,14 +814,15 @@ function renderGame(setId) {
   }
 
   const info = getGame(match.gameId);
-  const teams = match.teams;
+  const players = match.students;
+  const classPlayer = { ...CLASS_PLAYER };
   const muted = isMuted();
   let quiz = null;
   let current = null;
   let answered = false;
   let timer = null;
   let countdown = null;
-  let tally = new Map(); // điểm từng đội trong trận: { correct, total }
+  let tally = new Map(); // điểm từng học sinh trong trận: { correct, total }
 
   app.innerHTML = `
     <div class="game">
@@ -847,7 +854,7 @@ function renderGame(setId) {
         <h2 class="question" id="question"></h2>
         <div class="options" id="options"></div>
         <div id="feedback"></div>
-        <p class="quiz__hint">Chọn đáp án đúng. Trả lời xong sẽ tự chuyển sang đội kế tiếp.</p>
+        <p class="quiz__hint">Chọn đáp án đúng. Trả lời xong sẽ tự chuyển sang học sinh kế tiếp.</p>
       </section>
 
       <div class="overlay" id="overlay" hidden></div>
@@ -942,9 +949,9 @@ function renderGame(setId) {
     overlay.hidden = true;
     overlay.innerHTML = '';
     game.destroy();
-    quiz = createQuiz(teams, set.questions);
-    tally = new Map(teams.map(t => [t.id, { correct: 0, total: 0 }]));
-    game.init(board, teams, { questions: set.questions });
+    quiz = createQuiz(players, set.questions);
+    tally = new Map(players.map(p => [p.id, { correct: 0, total: 0 }]));
+    game.init(board, [classPlayer], { questions: set.questions, totalTurns: players.length });
     nextTurn();
   }
 
@@ -957,17 +964,18 @@ function renderGame(setId) {
     return `${'ABCD'[question.correctIndex]}. ${question.options[question.correctIndex]}`;
   }
 
-  // Hiện câu hỏi cho đội đang tới lượt
+  // Hiện câu hỏi cho học sinh đang tới lượt
   function nextTurn() {
-    if (game.checkWin()) return;
+    if (quiz.finished) { showResults(); return; }
     current = quiz.next();
+    if (!current) { showResults(); return; }
     answered = false;
 
-    const team = current.team;
+    const player = current.player;
     const question = current.question;
     turnSlot.innerHTML = `
-      <span class="turn" style="--team:${team.color}">
-        <span class="turn__dot"></span>Lượt của ${esc(team.name)}
+      <span class="turn" style="--team:${player.color}">
+        <span class="turn__dot"></span>Lượt của ${esc(player.name)} · câu ${quiz.index + 1}/${quiz.total}
       </span>
       <span class="quiz-timer" id="quiz-timer" hidden></span>`;
     questionEl.textContent = question.text;
@@ -1009,12 +1017,12 @@ function renderGame(setId) {
     startCountdown(question.timeLimit);
   }
 
-  // Bảng điểm từng đội trong trận, xếp theo số câu đúng rồi tỉ lệ đúng
+  // Bảng điểm từng học sinh trong trận, xếp theo số câu đúng rồi tỉ lệ đúng
   function scoreRows() {
-    return teams.map((t, order) => {
-      const s = tally.get(t.id) || { correct: 0, total: 0 };
+    return players.map((p, order) => {
+      const s = tally.get(p.id) || { correct: 0, total: 0 };
       return {
-        ...t,
+        ...p,
         order,
         correct: s.correct,
         total: s.total,
@@ -1027,7 +1035,7 @@ function renderGame(setId) {
     return `
       <div class="scoreboard">
         <div class="scoreboard__head">
-          <span>Hạng</span><span>Đội</span><span>Đúng</span><span>Tỉ lệ</span>
+          <span>Hạng</span><span>Học sinh</span><span>Đúng</span><span>Tỉ lệ</span>
         </div>
         ${rows.map((r, i) => `
           <div class="scoreboard__row ${r.id === winnerId ? 'is-winner' : ''}">
@@ -1043,9 +1051,11 @@ function renderGame(setId) {
       </div>`;
   }
 
-  function showWinner(winner) {
+  function showResults() {
+    stopCountdown();
     playWin();
     const rows = scoreRows();
+    const top = rows[0] || null;
 
     // Lưu trận vào lịch sử để trang Tổng hợp điểm thống kê
     saveMatch({
@@ -1053,19 +1063,17 @@ function renderGame(setId) {
       setName: set.title || 'Bộ chưa đặt tên',
       gameId: match.gameId,
       gameName: info.name,
-      teams: rows.map(r => ({ id: r.id, name: r.name, color: r.color, correct: r.correct, total: r.total })),
-      winner: { id: winner.id, name: winner.name, color: winner.color },
+      students: rows.map(r => ({ id: r.id, name: r.name, color: r.color, correct: r.correct, total: r.total })),
+      winner: top ? { id: top.id, name: top.name, color: top.color } : null,
     });
 
     overlay.innerHTML = `
       <div class="overlay__card overlay__card--wide">
         <div class="overlay__trophy">${icon('trophy')}</div>
-        <h2 class="overlay__title">${esc(winner.name)} chiến thắng!</h2>
-        <p class="muted">${game.id === 'tug'
-          ? 'Hai đội đã so tài nảy lửa, và đội này đã kéo dây về đích trước. Chúc mừng!'
-          : 'Đội đã xuất sắc về đích đầu tiên. Chúc mừng cả lớp đã học thêm nhiều điều mới!'}</p>
+        <h2 class="overlay__title">Cả lớp đã hoàn thành!</h2>
+        <p class="muted">${players.length} học sinh đã trả lời xong. Cùng xem điểm của từng bạn bên dưới.</p>
         <div class="scoreboard__title">${icon('chart-column')} Tổng hợp điểm</div>
-        ${scoreTable(rows, winner.id)}
+        ${scoreTable(rows, top ? top.id : null)}
         <div class="overlay__actions">
           <button class="btn btn--primary" data-act="again">${icon('rotate-ccw')} Chơi lại</button>
           <a class="btn btn--ghost" href="#/stats">${icon('chart-column')} Tổng hợp điểm</a>
@@ -1091,8 +1099,8 @@ function renderGame(setId) {
     if (result.isCorrect) playCorrect();
     else playWrong();
 
-    // Cộng điểm tổng hợp cho đội vừa trả lời; hết giờ tính là sai
-    const stat = tally.get(result.team.id);
+    // Cộng điểm tổng hợp cho học sinh vừa trả lời; hết giờ tính là sai
+    const stat = tally.get(result.player.id);
     if (stat) {
       stat.total += 1;
       if (result.isCorrect) stat.correct += 1;
@@ -1124,20 +1132,16 @@ function renderGame(setId) {
 
     feedbackEl.innerHTML = result.isCorrect
       ? game.id === 'tug'
-        ? `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.team.name)} kéo dây về phía mình.</div>`
-        : `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.team.name)} tiến thêm 1 bước.</div>`
+        ? `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.player.name)} kéo dây về phía lớp.</div>`
+        : `<div class="feedback feedback--ok">${icon('circle-check')} Chính xác! ${esc(result.player.name)} trả lời đúng.</div>`
       : picked === null
         ? `<div class="feedback feedback--bad">${icon('timer')} Hết giờ! Đáp án đúng là <strong>${esc(correctAnswerText(question))}</strong>.</div>`
         : `<div class="feedback feedback--bad">${icon('circle-x')} Chưa đúng. Đáp án đúng là <strong>${esc(correctAnswerText(question))}</strong>.</div>`;
 
-    game.onAnswer(result.team.id, result.isCorrect);
+    game.onAnswer(classPlayer.id, result.isCorrect);
 
-    const winner = game.checkWin();
-    if (winner) {
-      timer = setTimeout(() => showWinner(winner), 700);
-    } else {
-      timer = setTimeout(nextTurn, picked === null ? 2200 : 1700);
-    }
+    // Trận kết thúc khi mọi học sinh đã trả lời xong, không dừng sớm theo đường đua
+    timer = setTimeout(nextTurn, picked === null ? 2200 : 1700);
   }
 
   optionsEl.addEventListener('click', e => {
@@ -1178,9 +1182,10 @@ function renderStats() {
   const sum = summarize(history);
   const gameInfo = id => getGame(id);
 
-  // Mỗi trận hiển thị bảng điểm các đội, xếp theo số câu đúng
+  // Mỗi trận hiển thị bảng điểm các học sinh, xếp theo số câu đúng
   function matchCard(m) {
-    const rows = [...(m.teams || [])].sort((a, b) =>
+    const players = m.students || m.teams || [];
+    const rows = [...players].sort((a, b) =>
       (b.correct || 0) - (a.correct || 0) ||
       (b.total ? b.correct / b.total : 0) - (a.total ? a.correct / a.total : 0));
 
@@ -1193,7 +1198,7 @@ function renderStats() {
         </div>
         <div class="scoreboard">
           <div class="scoreboard__head">
-            <span>Hạng</span><span>Đội</span><span>Đúng</span><span>Tỉ lệ</span>
+            <span>Hạng</span><span>${m.students ? 'Học sinh' : 'Đội'}</span><span>Đúng</span><span>Tỉ lệ</span>
           </div>
           ${rows.map((r, i) => {
             const isWinner = m.winner && m.winner.id === r.id;
@@ -1234,10 +1239,10 @@ function renderStats() {
       </section>
 
       <section class="card card--wide">
-        <h2 class="card__title">${icon('medal')} Bảng xếp hạng đội</h2>
+        <h2 class="card__title">${icon('medal')} Bảng xếp hạng học sinh</h2>
         <div class="scoreboard scoreboard--teams">
           <div class="scoreboard__head">
-            <span>Hạng</span><span>Đội</span><span>Trận</span><span>Đúng</span><span>Tỉ lệ</span>
+            <span>Hạng</span><span>Học sinh</span><span>Trận</span><span>Đúng</span><span>Tỉ lệ</span>
           </div>
           ${sum.ranking.map((t, i) => `
             <div class="scoreboard__row">

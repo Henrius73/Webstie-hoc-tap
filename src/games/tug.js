@@ -1,25 +1,31 @@
-// Game kéo co: 2 đội. Trả lời đúng kéo dây về phía mình, sai bị đội bạn kéo
+// Game kéo co: cả lớp kéo dây về đích, mỗi câu sai bị "thử thách" kéo lại
 import { esc } from '../utils.js';
 import { icon } from '../icons.js';
 
-const STEPS = 4; // số bước kéo để dây về đích
+const STEPS = 4; // số bước mặc định khi không biết số học sinh
 
 // Trạng thái ván đang chạy; mỗi lúc chỉ có một ván trên màn hình
 let gameState = null;
 
-// Dựng giao diện game vào container, chỉ dùng 2 đội đầu tiên
-function init(container, teams) {
+// Dựng giao diện game vào container, nhận danh sách người chơi (cả lớp)
+function init(container, players, ctx = {}) {
+  const goal = Math.max(1, Number(ctx.totalTurns) || STEPS);
+  const classSide = players[0] || { id: 'class', name: 'Cả lớp', color: '#7c3aed' };
   gameState = {
     root: container,
-    teams: teams.slice(0, 2).map(t => ({ ...t })),
-    position: 0, // > 0: đội trái có lợi thế, < 0: đội phải có lợi thế
+    sides: [
+      { ...classSide },
+      { id: 'challenge', name: 'Thử thách', color: '#64748b' },
+    ],
+    goal,
+    position: 0, // > 0: cả lớp có lợi thế, < 0: thử thách có lợi thế
     winner: null,
   };
 
-  const teamBox = (team, side) => team ? `
-    <div class="tug__team tug__team--${side}" data-team="${team.id}" style="--team:${team.color}">
+  const sideBox = (side, alignment) => side ? `
+    <div class="tug__team tug__team--${alignment}" data-side="${side.id}" style="--team:${side.color}">
       <span class="tug__emoji">${icon('dumbbell')}</span>
-      <strong class="tug__name">${esc(team.name)}</strong>
+      <strong class="tug__name">${esc(side.name)}</strong>
       <span class="tug__state"></span>
     </div>` : '';
 
@@ -27,44 +33,44 @@ function init(container, teams) {
     <div class="tug">
       <div class="tug__head">
         <span>${icon('move-horizontal')} Kéo co tri thức</span>
-        <span class="tug__hint">Đúng kéo dây về phía mình · Sai bị đối thủ kéo 1 bước</span>
+        <span class="tug__hint">Đúng kéo dây về phía lớp · Sai bị thử thách kéo 1 bước</span>
       </div>
       <div class="tug__arena">
-        ${teamBox(gameState.teams[0], 'left')}
+        ${sideBox(gameState.sides[0], 'left')}
         <div class="tug__field">
           <div class="tug__line"></div>
           <span class="tug__target tug__target--left">${icon('flag')}</span>
           <span class="tug__target tug__target--right">${icon('flag')}</span>
           <div class="tug__knot">${icon('grip')}</div>
         </div>
-        ${teamBox(gameState.teams[1], 'right')}
+        ${sideBox(gameState.sides[1], 'right')}
       </div>
     </div>`;
 
   render();
 }
 
-// Đặt nút thắt theo thế trận và cập nhật trạng thái hai đội
+// Đặt nút thắt theo thế trận và cập nhật trạng thái hai bên
 function render() {
   if (!gameState) return;
-  const { root, teams, position, winner } = gameState;
+  const { root, sides, position, goal, winner } = gameState;
 
   const knot = root.querySelector('.tug__knot');
   if (!knot) return;
-  knot.style.left = `${50 - (position / STEPS) * 40}%`; // 10% .. 90%
+  knot.style.left = `${50 - (position / goal) * 40}%`; // 10% .. 90%
 
   root.querySelectorAll('.tug__team').forEach(el => {
-    const team = teams.find(t => t.id === el.dataset.team);
-    if (!team) return;
+    const side = sides.find(s => s.id === el.dataset.side);
+    if (!side) return;
 
-    const isLeft = team.id === teams[0].id;
-    const remaining = isLeft ? STEPS - position : STEPS + position;
+    const isLeft = side.id === sides[0].id;
+    const remaining = isLeft ? goal - position : goal + position;
     el.querySelector('.tug__state').textContent =
       remaining <= 0 ? 'Về đích!' : `Còn ${remaining} bước`;
 
-    // Tô sáng đội đang kéo dây về phía mình / đội thắng
+    // Tô sáng bên đang kéo dây về phía mình / bên thắng
     el.classList.toggle('is-pulling', isLeft ? position > 0 : position < 0);
-    el.classList.toggle('is-winning', winner === team);
+    el.classList.toggle('is-winning', winner === side);
   });
 
   // Hiệu ứng nhún khi nút thắt vừa di chuyển
@@ -83,22 +89,20 @@ function render() {
   }
 }
 
-// Gọi khi một đội trả lời; đúng kéo về phía mình, sai bị kéo ngược lại
-function onAnswer(teamId, isCorrect) {
+// Gọi khi học sinh trả lời; đúng kéo về phía lớp, sai bị kéo ngược lại
+function onAnswer(playerId, isCorrect) {
   if (!gameState || gameState.winner) return;
-  const index = gameState.teams.findIndex(t => t.id === teamId);
-  if (index < 0) return;
+  if (gameState.sides.findIndex(s => s.id === playerId) < 0) return;
 
-  const direction = index === 0 ? 1 : -1;
-  gameState.position += direction * (isCorrect ? 1 : -1);
-  gameState.position = Math.max(-STEPS, Math.min(STEPS, gameState.position));
+  gameState.position += isCorrect ? 1 : -1;
+  gameState.position = Math.max(-gameState.goal, Math.min(gameState.goal, gameState.position));
 
-  if (gameState.position >= STEPS) gameState.winner = gameState.teams[0];
-  else if (gameState.position <= -STEPS) gameState.winner = gameState.teams[1];
+  if (gameState.position >= gameState.goal) gameState.winner = gameState.sides[0];
+  else if (gameState.position <= -gameState.goal) gameState.winner = gameState.sides[1];
   render();
 }
 
-// Trả về đội thắng khi ván kết thúc, ngược lại null
+// Trả về bên thắng khi dây về đích, ngược lại null
 function checkWin() {
   return gameState ? gameState.winner : null;
 }
@@ -113,8 +117,7 @@ export default {
   id: 'tug',
   name: 'Kéo co tri thức',
   icon: 'move-horizontal',
-  description: 'Hai đội so tài: trả lời đúng kéo dây về phía mình.',
-  teamLimit: 2, // kéo co chỉ chơi được với đúng 2 đội
+  description: 'Cả lớp cùng kéo dây về đích; mỗi câu sai bị thử thách kéo lại.',
   init,
   onAnswer,
   checkWin,

@@ -32,32 +32,34 @@ export function clearHistory() {
   persist([]);
 }
 
-// Thống kê tổng hợp: số trận, tổng câu, tỉ lệ đúng, bảng xếp hạng theo đội
+// Thống kê tổng hợp: số trận, tổng câu, tỉ lệ đúng, bảng xếp hạng theo học sinh
 export function summarize(history = getHistory()) {
   let totalQuestions = 0;
   let totalCorrect = 0;
-  const byTeam = new Map();
+  const byStudent = new Map();
 
   for (const match of history) {
-    for (const t of match.teams || []) {
-      const correct = t.correct || 0;
-      const total = t.total || 0;
+    // Trận cũ lưu theo "teams", trận mới lưu theo "students"
+    const players = match.students || match.teams || [];
+    for (const p of players) {
+      const correct = p.correct || 0;
+      const total = p.total || 0;
       totalQuestions += total;
       totalCorrect += correct;
 
-      const agg = byTeam.get(t.name) || {
-        name: t.name, color: t.color, matches: 0, wins: 0, correct: 0, total: 0,
+      const agg = byStudent.get(p.name) || {
+        name: p.name, color: p.color, matches: 0, wins: 0, correct: 0, total: 0,
       };
       agg.matches += 1;
       agg.correct += correct;
       agg.total += total;
-      if (match.winner && match.winner.id === t.id) agg.wins += 1;
-      byTeam.set(t.name, agg);
+      if (match.winner && match.winner.id === p.id) agg.wins += 1;
+      byStudent.set(p.name, agg);
     }
   }
 
-  const ranking = [...byTeam.values()]
-    .map(t => ({ ...t, accuracy: t.total ? Math.round((t.correct / t.total) * 100) : 0 }))
+  const ranking = [...byStudent.values()]
+    .map(p => ({ ...p, accuracy: p.total ? Math.round((p.correct / p.total) * 100) : 0 }))
     .sort((a, b) => b.correct - a.correct || b.accuracy - a.accuracy || b.wins - a.wins);
 
   return {

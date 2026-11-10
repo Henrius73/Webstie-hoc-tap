@@ -1,4 +1,4 @@
-// Quiz engine: xoay lượt từng đội và bốc câu hỏi ngẫu nhiên không lặp
+// Quiz engine: xoay lượt từng học sinh và bốc câu hỏi ngẫu nhiên không lặp
 import { shuffle } from './utils.js';
 
 // So khớp câu điền từ: bỏ khoảng trắng thừa, không phân biệt hoa/thường, giữ dấu tiếng Việt
@@ -16,7 +16,8 @@ function isCorrectAnswer(question, response) {
   return response === question.correctIndex;
 }
 
-export function createQuiz(teams, questions) {
+// Mỗi học sinh trả lời đúng 1 câu; hết danh sách là kết thúc trận
+export function createQuiz(students, questions) {
   let deck = shuffle(questions);
   let turn = 0;
   let current = null;
@@ -28,25 +29,43 @@ export function createQuiz(teams, questions) {
   }
 
   return {
-    // Đội đang tới lượt
-    get team() {
-      return teams[turn % teams.length];
+    // Học sinh đang tới lượt
+    get player() {
+      return students[turn] || null;
     },
 
-    // Bốc câu tiếp theo cho đội đang tới lượt
+    // Tổng số lượt = số học sinh trong trận
+    get total() {
+      return students.length;
+    },
+
+    // Số thứ tự lượt hiện tại (bắt đầu từ 0)
+    get index() {
+      return turn;
+    },
+
+    // Đã cho mọi học sinh trả lời xong chưa
+    get finished() {
+      return turn >= students.length;
+    },
+
+    // Bốc câu tiếp theo cho học sinh đang tới lượt
     next() {
-      current = { team: teams[turn % teams.length], question: drawQuestion() };
+      if (turn >= students.length) return null;
+      current = { player: students[turn], index: turn, question: drawQuestion() };
       return current;
     },
 
-    // Chấm đáp án, sau đó chuyển lượt sang đội kế tiếp
+    // Chấm đáp án, sau đó chuyển lượt sang học sinh kế tiếp
     answer(response) {
       if (!current) throw new Error('Chưa gọi next() trước khi answer()');
       const result = {
-        team: current.team,
+        player: current.player,
+        index: current.index,
         question: current.question,
         isCorrect: isCorrectAnswer(current.question, response),
       };
+      current = null;
       turn++;
       return result;
     },

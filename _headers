@@ -1,0 +1,17 @@
+# Header tĩnh cho Cloudflare Pages và Netlify (cú pháp giống nhau).
+# Không cache HTML, manifest và service worker để bản mới được nhận ngay.
+
+/index.html
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: geolocation=(), microphone=(), camera=()

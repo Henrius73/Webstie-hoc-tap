@@ -1,0 +1,104 @@
+// Game nhảy bao bố: mỗi câu đúng, người chơi nhảy 1 bước; về đích trước sẽ thắng.
+import { esc } from '../utils.js';
+import { icon } from '../icons.js';
+
+const STEPS = 6; // số bước để về đích
+
+// Trạng thái ván đang chạy; mỗi lúc chỉ có một ván trên màn hình
+let gameState = null;
+
+// Dựng giao diện game vào container, nhận danh sách đội
+function init(container, teams) {
+  gameState = {
+    root: container,
+    teams: teams.map(t => ({ ...t, pos: 0 })),
+    winner: null,
+  };
+
+  container.innerHTML = `
+    <div class="race sack">
+      <div class="race__head">
+        <span>${icon('rabbit')} Đường đua bao bố</span>
+        <span class="race__hint">Đúng 1 câu ${icon('arrow-right')} nhảy 1 bước · Về đích sau ${STEPS} bước</span>
+      </div>
+      <div class="race__lanes">
+        ${gameState.teams.map(t => `
+          <div class="lane" data-team="${t.id}">
+            <span class="lane__name" style="--team:${t.color}">${esc(t.name)}</span>
+            <div class="lane__track">
+              <div class="lane__road">
+                <span class="lane__car" style="color:${t.color}">${icon('shopping-bag')}</span>
+              </div>
+              <span class="lane__finish">${icon('flag')}</span>
+            </div>
+            <span class="lane__score">0/${STEPS}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+
+  render();
+}
+
+// Vẽ lại vị trí bao bố và điểm số
+function render() {
+  if (!gameState) return;
+  const { root, teams } = gameState;
+
+  root.querySelectorAll('.lane').forEach(lane => {
+    const team = teams.find(t => t.id === lane.dataset.team);
+    if (!team) return;
+
+    const jumper = lane.querySelector('.lane__car');
+    jumper.style.left = `${(team.pos / STEPS) * 100}%`;
+    lane.querySelector('.lane__score').textContent = `${team.pos}/${STEPS}`;
+    lane.classList.toggle('is-winner', team.pos >= STEPS);
+
+    // Hiệu ứng nhảy lên mỗi khi tiến thêm một bước (không chạy lúc mới dựng bàn)
+    const moved = jumper.dataset.pos !== undefined && jumper.dataset.pos !== String(team.pos);
+    jumper.dataset.pos = String(team.pos);
+    if (moved && jumper.animate) {
+      jumper.animate(
+        [
+          { transform: 'translate(-50%, -50%) rotate(0deg)' },
+          { transform: 'translate(-50%, -88%) rotate(-5deg) scale(1.08)' },
+          { transform: 'translate(-50%, -50%) rotate(0deg)' },
+        ],
+        { duration: 380, easing: 'ease-out' }
+      );
+    }
+  });
+}
+
+// Gọi khi một đội trả lời; đúng thì nhảy 1 bước
+function onAnswer(teamId, isCorrect) {
+  if (!gameState || gameState.winner) return;
+  const team = gameState.teams.find(t => t.id === teamId);
+  if (!team) return;
+
+  if (isCorrect) team.pos = Math.min(STEPS, team.pos + 1);
+  if (team.pos >= STEPS) gameState.winner = team;
+  render();
+}
+
+// Trả về đội thắng khi ván kết thúc, ngược lại null
+function checkWin() {
+  return gameState ? gameState.winner : null;
+}
+
+// Dọn dẹp khi rời màn chơi
+function destroy() {
+  if (gameState?.root) gameState.root.innerHTML = '';
+  gameState = null;
+}
+
+export default {
+  id: 'sack',
+  name: 'Nhảy bao bố',
+  icon: 'rabbit',
+  description: 'Trả lời đúng, chiếc bao bố nhảy 1 bước. Về đích trước để thắng.',
+  teamLimit: null, // không giới hạn số đội
+  init,
+  onAnswer,
+  checkWin,
+  destroy,
+};

@@ -2,6 +2,7 @@
 import { getSets, getSet, saveSet, deleteSet, blankSet, blankQuestion, sampleSet, parseSetsJson, buildExportData } from './store.js';
 import { esc, toast } from './utils.js';
 import { parseCsvQuestions } from './csv.js';
+import { parseXlsxQuestions, buildXlsxWorkbook } from './xlsx.js';
 import { createQuiz } from './quizEngine.js';
 import { getGame, listGames } from './games/index.js';
 import { icon } from './icons.js';
@@ -122,9 +123,8 @@ function slugify(text = '') {
     .slice(0, 50) || 'bo-cau-hoi';
 }
 
-// Tạo tệp JSON và kích hoạt tải xuống mà không cần backend
-function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+// Kích hoạt tải một Blob xuống mà không cần backend
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -133,6 +133,11 @@ function downloadJson(filename, data) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// Tạo tệp JSON và kích hoạt tải xuống
+function downloadJson(filename, data) {
+  downloadBlob(filename, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
 }
 
 // ===== Trang giáo viên: soạn & quản lý bộ câu hỏi =====
@@ -145,7 +150,7 @@ function renderTeacher() {
     <div class="teacher__head">
       <div>
         <h1 class="page-title">Tạo bộ câu hỏi</h1>
-        <p class="page-sub">Soạn câu hỏi trắc nghiệm, chọn đáp án đúng rồi lưu lại để chơi.</p>
+        <p class="page-sub">Soạn câu hỏi trắc nghiệm, đúng/sai hoặc điền từ rồi lưu lại để chơi.</p>
       </div>
       <div class="hero__actions" style="margin:0">
         <button class="btn btn--ghost" data-act="sample">${icon('dices')} Dùng bộ mẫu</button>
@@ -167,13 +172,16 @@ function renderTeacher() {
         <button class="btn btn--ghost btn--sm" data-act="add-q">${icon('plus')} Thêm câu hỏi</button>
         <div class="editor__actions">
           <button class="btn btn--primary" data-act="save">${icon('save')} Lưu bộ câu hỏi</button>
+          <button class="btn btn--ghost btn--sm" data-act="import-excel"
+            title="Thêm câu hỏi từ tệp Excel .xlsx vào bộ đang soạn">${icon('file-spreadsheet')} Nhập Excel</button>
           <button class="btn btn--ghost btn--sm" data-act="import-csv"
             title="Thêm câu hỏi từ tệp CSV vào bộ đang soạn">${icon('upload')} Nhập CSV</button>
           <span class="muted" id="editor-status"></span>
         </div>
         <p class="csv-hint muted">
-          CSV gồm 6 cột: Câu hỏi, Đáp án A, Đáp án B, Đáp án C, Đáp án D, Đáp án đúng (A-D).
-          Câu hợp lệ được thêm vào bộ đang soạn, chưa tự lưu.
+          <strong>Excel (.xlsx):</strong> cột Loại câu hỏi (Trắc nghiệm, Đúng/Sai, Điền từ), Câu hỏi,
+          Đáp án A–D, Đáp án đúng, Các đáp án đúng, Ảnh (URL), Thời gian (giây).
+          Vẫn nhận CSV 6 cột (chỉ câu trắc nghiệm) như trước. Câu hợp lệ được thêm vào bộ đang soạn, chưa tự lưu.
         </p>
         <div class="csv-report" id="csv-report" aria-live="polite" hidden></div>
       </section>
@@ -185,14 +193,17 @@ function renderTeacher() {
             <button class="btn btn--ghost btn--sm" data-act="import"
               title="Nhập bộ câu hỏi từ tệp JSON">${icon('upload')} Nhập</button>
             <button class="btn btn--ghost btn--sm" data-act="export-all"
-              title="Xuất tất cả bộ câu hỏi ra tệp JSON">${icon('download')} Xuất</button>
+              title="Xuất tất cả bộ câu hỏi ra tệp JSON">${icon('download')} JSON</button>
+            <button class="btn btn--ghost btn--sm" data-act="export-excel-all"
+              title="Xuất tất cả bộ câu hỏi ra tệp Excel .xlsx (mỗi bộ một sheet)">${icon('file-spreadsheet')} Excel</button>
           </div>
         </div>
         <div class="saved__list" id="saved-list"></div>
-        <p class="saved__hint muted">Tệp JSON dùng để sao lưu hoặc chia sẻ bộ câu hỏi giữa các máy.</p>
+        <p class="saved__hint muted">JSON dùng để sao lưu/chia sẻ; Excel (.xlsx) mỗi bộ một sheet, mở được bằng Excel hoặc Google Sheets.</p>
       </aside>
       <input id="import-file" type="file" accept=".json,application/json" hidden />
       <input id="csv-file" type="file" accept=".csv,text/csv" hidden />
+      <input id="excel-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
     </div>
     </div>`;
 
@@ -204,6 +215,7 @@ function renderTeacher() {
   const statusEl = app.querySelector('#editor-status');
   const fileInput = app.querySelector('#import-file');
   const csvInput = app.querySelector('#csv-file');
+  const excelInput = app.querySelector('#excel-file');
   const csvReport = app.querySelector('#csv-report');
   const letters = ['A', 'B', 'C', 'D'];
   const typeLabels = { choice: 'Trắc nghiệm', boolean: 'Đúng / Sai', fill: 'Điền từ' };
@@ -311,13 +323,13 @@ function renderTeacher() {
     statusEl.textContent = editingId ? 'Đang sửa bộ đã lưu' : 'Bộ mới chưa lưu';
   }
 
-  // Xóa báo cáo CSV khi chuyển sang bộ khác
+  // Xóa báo cáo nhập tệp khi chuyển sang bộ khác
   function clearCsvReport() {
     csvReport.hidden = true;
     csvReport.innerHTML = '';
   }
 
-  // Hiện các dòng CSV chưa nhập được để giáo viên sửa
+  // Hiện các dòng CSV/Excel chưa nhập được để giáo viên sửa
   function showCsvReport(added, errors) {
     if (!errors.length) { clearCsvReport(); return; }
     const head = added
@@ -375,7 +387,9 @@ function renderTeacher() {
           <a class="btn btn--ghost btn--sm" href="#/play/${s.id}">${icon('play')} Chơi</a>
           <button class="btn btn--ghost btn--sm" data-act="edit" data-id="${s.id}">${icon('pencil')} Sửa</button>
           <button class="btn btn--ghost btn--sm" data-act="export" data-id="${s.id}"
-            title="Xuất bộ này ra tệp JSON">${icon('file-down')} Xuất</button>
+            title="Xuất bộ này ra tệp JSON">${icon('file-down')} JSON</button>
+          <button class="btn btn--ghost btn--sm" data-act="export-excel" data-id="${s.id}"
+            title="Xuất bộ này ra tệp Excel .xlsx">${icon('file-spreadsheet')} Excel</button>
           <button class="btn btn--danger btn--sm" data-act="delete" data-id="${s.id}">${icon('trash-2')} Xóa</button>
         </div>
       </div>`).join('') : '<p class="muted">Chưa có bộ nào. Hãy soạn bộ đầu tiên ở khung bên trái.</p>';
@@ -392,6 +406,25 @@ function renderTeacher() {
     const set = getSet(id);
     if (!set) return;
     exportSets([set], `hocvui-${slugify(set.title)}.json`);
+  }
+
+  // Xuất một hoặc nhiều bộ câu hỏi ra tệp Excel; mỗi bộ là một sheet
+  function exportExcelSets(list, filename) {
+    if (!list.length) { toast('Chưa có bộ câu hỏi để xuất'); return; }
+    try {
+      downloadBlob(filename, buildXlsxWorkbook(list));
+      toast(list.length === 1
+        ? 'Đã xuất bộ câu hỏi ra Excel'
+        : `Đã xuất ${list.length} bộ câu hỏi ra Excel`);
+    } catch (err) {
+      toast(err.message || 'Không tạo được tệp Excel');
+    }
+  }
+
+  function exportExcelOne(id) {
+    const set = getSet(id);
+    if (!set) return;
+    exportExcelSets([set], `hocvui-${slugify(set.title)}.xlsx`);
   }
 
   function saveDraft() {
@@ -533,9 +566,12 @@ function renderTeacher() {
       toast('Đã xóa bộ câu hỏi');
     }
     if (act === 'import') fileInput.click();
+    if (act === 'import-excel') excelInput.click();
     if (act === 'import-csv') csvInput.click();
     if (act === 'export') exportOne(btn.dataset.id);
+    if (act === 'export-excel') exportExcelOne(btn.dataset.id);
     if (act === 'export-all') exportSets(getSets(), 'hocvui-bo-cau-hoi.json');
+    if (act === 'export-excel-all') exportExcelSets(getSets(), 'hocvui-bo-cau-hoi.xlsx');
   });
 
   // Nhập tệp JSON do giáo viên chọn
@@ -554,6 +590,38 @@ function renderTeacher() {
     } finally {
       // Xóa lựa chọn để có thể nhập lại đúng tệp đó
       fileInput.value = '';
+    }
+  });
+
+  // Nhập câu hỏi từ tệp Excel .xlsx vào bộ đang soạn
+  excelInput.addEventListener('change', async () => {
+    const file = excelInput.files?.[0];
+    if (!file) return;
+
+    try {
+      const { questions, errors } = await parseXlsxQuestions(await file.arrayBuffer());
+
+      if (!questions.length) {
+        showCsvReport(0, errors);
+        toast(errors[0]?.message || 'Không đọc được câu hỏi từ Excel');
+        return;
+      }
+
+      // Bộ mới chỉ có 1 câu trống thì thay thế, còn lại thì nối thêm
+      const replaceBlank = draft.questions.length === 1 && isBlankQuestion(draft.questions[0]);
+      draft.questions = replaceBlank ? questions : [...draft.questions, ...questions];
+      renderQuestions();
+      showCsvReport(questions.length, errors);
+      toast(errors.length
+        ? `Đã thêm ${questions.length} câu, ${errors.length} dòng lỗi`
+        : `Đã thêm ${questions.length} câu hỏi từ Excel`);
+    } catch (err) {
+      const message = err.message || 'Không đọc được tệp Excel';
+      showCsvReport(0, [{ line: 0, message }]);
+      toast(message);
+    } finally {
+      // Xóa lựa chọn để có thể nhập lại đúng tệp đó
+      excelInput.value = '';
     }
   });
 
@@ -954,8 +1022,9 @@ function renderGame(setId) {
 
     const image = question.image;
     questionImage.hidden = !image;
+    // Ảnh câu hỏi tải ngay (không lazy) để hiện kịp trước khi đồng hồ chạy
     questionImage.innerHTML = image
-      ? `<img src="${esc(image)}" alt="Ảnh minh họa câu hỏi" loading="lazy" />`
+      ? `<img src="${esc(image)}" alt="Ảnh minh họa câu hỏi" />`
       : '';
 
     optionsEl.className = 'options';

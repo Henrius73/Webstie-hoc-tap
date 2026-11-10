@@ -132,7 +132,24 @@ Dữ liệu cũ chưa có `type` được tự hiểu là `choice`. Câu `fill` 
 **Quy ước**
 - `progress` chạy từ 0 đến 100.
 - `correctIndex` tính từ 0.
-- Mọi dữ liệu nhập từ ngoài (CSV, JSON) phải được kiểm tra hợp lệ trước khi dùng.
+- Mọi dữ liệu nhập từ ngoài (Excel, CSV, JSON) phải được kiểm tra hợp lệ trước khi dùng.
+
+**Định dạng Excel cho phép nhập/xuất hàng loạt** (đủ 3 loại câu)
+Mỗi sheet là một bộ câu hỏi; dòng 1 là tiêu đề 10 cột:
+| Cột | Ý nghĩa |
+|---|---|
+| `Loại câu hỏi` | `Trắc nghiệm`, `Đúng/Sai` hoặc `Điền từ`; để trống = `choice`; nhận cả chữ không dấu |
+| `Câu hỏi` | Nội dung câu hỏi |
+| `Đáp án A`–`Đáp án D` | 4 đáp án của câu `choice` |
+| `Đáp án đúng` | `A`–`D` với `choice`; `Đúng`/`Sai` với `boolean` |
+| `Các đáp án đúng` | Với `fill`: 1–5 cách viết, cách nhau bằng `\|` |
+| `Ảnh (URL)` | URL ảnh minh họa, có thể để trống |
+| `Thời gian (giây)` | 0–600; để trống = 0 (không giới hạn) |
+
+- Nhập Excel đọc **sheet đầu tiên**, thêm câu hợp lệ vào bộ đang soạn (không tự lưu) và báo lỗi theo số dòng Excel; dòng lỗi bị bỏ qua.
+- Vẫn nhận file 6 cột cũ (có hoặc không tiêu đề) và coi là câu `choice`.
+- Xuất Excel: mỗi bộ một sheet; xuất tất cả tạo workbook nhiều sheet theo thứ tự danh sách (mới lưu trước).
+- Chỉ hỗ trợ `.xlsx` hiện đại (ZIP + XML); file `.xls` cũ phải lưu lại thành `.xlsx`.
 
 **Định dạng CSV cho phép nhập hàng loạt** (chỉ tạo câu `choice`)
 ```
@@ -226,6 +243,7 @@ export default {
 - [x] Âm thanh, toàn màn hình (responsive đã xong)
 - [x] Ảnh minh họa và giới hạn thời gian cho câu hỏi
 - [x] Thêm dạng câu hỏi đúng/sai, điền từ
+- [x] Nhập/xuất Excel `.xlsx` cho cả 3 loại câu (tự đọc/ghi ZIP+XML, không dùng thư viện ngoài)
 
 **Mốc 4: Chơi online**
 - [ ] Chọn backend, thiết kế phòng chơi bằng mã
@@ -252,13 +270,18 @@ export default {
 | 2026-11-10 | Ảnh câu hỏi dùng URL; hết giờ tính là trả lời sai; `timeLimit = 0` là không giới hạn | Đúng schema mục 5 (`image` là chuỗi/null), giữ công bằng khi tính điểm và không ép giáo viên tải ảnh lên |
 | 2026-11-10 | Âm thanh tạo bằng Web Audio API trong `src/sound.js`; bật mặc định, tắt/bật được và ghi nhớ ở `hocvui.muted.v1` | Không cần tệp ngoài, không vướng bản quyền, chạy ngoại tuyến; AudioContext chỉ tạo ở lần phát đầu để không bị trình duyệt chặn |
 | 2026-11-10 | Toàn màn hình áp dụng cho khung `.game`, không phải cả trang; overlay thắng nằm trong khung này | Giữ nguyên nút điều khiển và bảng điểm khi chiếu; ẩn nút nếu trình duyệt không hỗ trợ |
-| 2026-11-10 | PWA dùng service worker cache sẵn app shell (phiên bản `hocvui-vN`, hiện là `hocvui-v3`); trang điều hướng ưu tiên mạng rồi mới lấy cache | Chạy được khi mất mạng mà vẫn nhận bản mới khi có mạng; chỉ cache tài nguyên cùng origin |
+| 2026-11-10 | PWA dùng service worker cache sẵn app shell (phiên bản `hocvui-vN`, hiện là `hocvui-v4`); trang điều hướng ưu tiên mạng rồi mới lấy cache | Chạy được khi mất mạng mà vẫn nhận bản mới khi có mạng; chỉ cache tài nguyên cùng origin |
 | 2026-11-10 | Icon PWA tạo sẵn bằng script Node và lưu trong `assets/icons/` | Không phụ thuộc thư viện/DVD, đủ 192, 512 và bản maskable để cài lên điện thoại |
 | 2026-11-10 | Mở rộng schema với `type: choice / boolean / fill`; dữ liệu cũ tự nhận là `choice`; giữ nguyên `options`/`correctIndex`, thêm `answers` | Tương thích ngược, CSV 6 cột vẫn dùng được; JSON là cách chia sẻ câu đúng/sai và điền từ |
 | 2026-11-10 | Điền từ so khớp sau khi cắt/gộp khoảng trắng, không phân biệt hoa/thường, giữ dấu tiếng Việt | Tránh lỗi gõ thừa khoảng trắng; giáo viên chủ động thêm cách viết không dấu vào `answers` nếu cần |
 | 2026-11-10 | Đổi loại câu trong trình soạn sẽ đặt lại phần đáp án của loại mới, giữ nội dung/ảnh/thời gian | Tránh dữ liệu rác giữa các loại; giáo viên không phải nhập lại toàn bộ |
 | 2026-11-10 | Deploy dạng trang tĩnh, không build; cấu hình `_headers` dùng chung cho Cloudflare Pages và Netlify | Hash router nên không cần rewrite; `_headers` giữ HTML/SW/manifest không cache và thêm header an toàn trên cả hai host |
 | 2026-11-10 | Dữ liệu giáo viên chỉ nằm trong `localStorage` theo tên miền; chuyển host phải xuất/nhập JSON | Chưa có backend; tránh mất bộ câu hỏi khi đổi tên miền hoặc xóa dữ liệu trình duyệt |
+| 2026-11-10 | Excel `.xlsx` tự đọc/ghi bằng `src/xlsx.js` (ZIP + XML, `DecompressionStream('deflate-raw')`, `DOMParser`), không dùng SheetJS/thư viện ngoài | Giữ app tĩnh, nhẹ, chạy ngoại tuyến và không thêm phụ thuộc/bản quyền; đủ nhu cầu nhập/xuất của giáo viên |
+| 2026-11-10 | Chỉ hỗ trợ `.xlsx` hiện đại, không hỗ trợ `.xls` cũ | `.xls` là định dạng nhị phân phức tạp; báo lỗi rõ để giáo viên lưu lại thành `.xlsx` |
+| 2026-11-10 | Excel là định dạng chính để soạn hàng loạt (đủ 3 loại câu, ảnh, thời gian); CSV 6 cột và JSON vẫn giữ | Giáo viên quen Excel; CSV/JSON vẫn hữu ích cho dữ liệu cũ và sao lưu |
+| 2026-11-10 | Nhập Excel chỉ đọc sheet đầu tiên, thêm câu hợp lệ vào bộ đang soạn và báo lỗi theo số dòng Excel, không tự lưu | Tránh ghi đè ngoài ý muốn; giáo viên xem/sửa rồi mới bấm Lưu |
+| 2026-11-10 | Xuất Excel mỗi bộ một sheet; xuất tất cả tạo workbook nhiều sheet theo thứ tự danh sách | Một tệp sao lưu đầy đủ, mở được bằng Excel/Google Sheets và nhập lại được |
 | | | |
 
 ---
@@ -276,7 +299,7 @@ export default {
 
 ## 12. Trạng thái hiện tại *(cập nhật cuối mỗi phiên)*
 
-**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới); tiếp theo deploy và thử trên điện thoại.
+**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel); tiếp theo deploy và thử trên điện thoại.
 
 **Đã xong:**
 - Khung trang, sidebar, router hash, responsive (desktop / tablet / mobile), icon Lucide ngoại tuyến.
@@ -291,7 +314,8 @@ export default {
 - PWA chạy ngoại tuyến: `manifest.webmanifest` + icon 192/512/maskable, service worker `sw.js` cache sẵn toàn bộ HTML/CSS/JS/icon; đăng ký trong `src/main.js`; trang điều hướng ưu tiên mạng rồi fallback cache; dữ liệu localStorage giữ nguyên khi mất mạng.
 - Ba dạng câu hỏi: `choice` (4 đáp án — như cũ), `boolean` (Đúng/Sai, 2 nút lớn có biểu tượng), `fill` (ô nhập + nút Trả lời, Enter để gửi, 1–5 cách viết). Trình soạn có ô chọn loại; đổi loại đặt lại phần đáp án nhưng giữ nội dung/ảnh/thời gian. Chấm điền từ bỏ khoảng trắng thừa, không phân biệt hoa/thường, giữ dấu tiếng Việt. Dữ liệu cũ tự nhận là `choice`; CSV vẫn chỉ tạo câu 4 đáp án.
 - Chuẩn bị deploy: thêm `_headers` (Cloudflare Pages/Netlify) giữ HTML/manifest/SW không cache và header an toàn; `README.md` hướng dẫn chạy local, deploy, sao lưu JSON và tăng cache SW; `.gitignore`; khởi tạo Git repo local với commit đầu tiên.
-- Đã push mã nguồn lên GitHub: `https://github.com/Henrius73/Webstie-hoc-tap` (nhánh `main`, commit `ec6aaf0`).
+- Đã push mã nguồn lên GitHub: `https://github.com/Henrius73/Webstie-hoc-tap` (nhánh `main`).
+- Nhập/xuất Excel `.xlsx` (`src/xlsx.js`, không dùng thư viện ngoài): đọc/ghi ZIP + XML, hỗ trợ đủ 3 loại câu, ảnh và thời gian; nhận file 10 cột có tiêu đề lẫn file 6 cột cũ (có/không tiêu đề), đọc sheet đầu tiên, báo lỗi theo số dòng Excel. Xuất từng bộ (một sheet) hoặc tất cả (nhiều sheet). Có nút **Nhập Excel**, **Excel** ở từng bộ và **Excel** xuất tất cả; CSV/JSON vẫn giữ.
 - Nhập câu hỏi từ CSV (Mốc 2): hỗ trợ BOM, CRLF/LF, tiếng Việt, dấu phẩy/ngoặc kép/nội dung nhiều dòng trong ô; nhận header mục 5 hoặc file không header; báo lỗi từng dòng; thêm câu hợp lệ vào bộ đang soạn, không tự lưu.
 - Chuẩn hóa dữ liệu theo mục 5: `{ id, title, subject, questions: [{ id, type, text, options, correctIndex, answers, image, timeLimit }] }`.
 - Tự chuyển dữ liệu cũ dùng `name`: giữ id bộ cũ, cấp id câu, `type = 'choice'`, `answers = []`, `image = null`, `timeLimit = 0`; bỏ qua bộ hỏng thay vì làm sập app.
@@ -308,7 +332,9 @@ export default {
 3. Rà soát giao diện desktop/mobile sau khi có bản chạy thật.
 
 **Lỗi/vấn đề đã biết:**
-- Chưa có Git repo nên các thay đổi chưa được commit.
+- Chưa deploy thật lên hosting và chưa thử trên điện thoại thật.
+- Excel chỉ hỗ trợ `.xlsx` hiện đại; file `.xls` cũ phải lưu lại thành `.xlsx` trước khi nhập.
+- Ảnh câu hỏi dùng URL ngoài nên vẫn cần mạng để tải ảnh (khung app và câu hỏi chữ chạy ngoại tuyến).
 - Lịch sử trận vẫn dùng khóa `setName` để tương thích dữ liệu cũ.
 
 **Ghi chú cho phiên sau:**
@@ -317,11 +343,12 @@ export default {
 - Thêm game mới: tạo module export object theo mục 6 rồi khai báo trong `src/games/index.js`; trang thiết lập tự sinh danh sách game.
 - Ảnh câu hỏi là URL (không tải tệp lên); đồng hồ dùng mốc thời gian tuyệt đối nên không lệch sau khi tab bị treo, dừng khi đã trả lời hoặc rời trang.
 - Âm thanh nằm ở `src/sound.js`; muốn thêm hiệu ứng mới thì thêm hàm `play...` rồi gọi ở `src/main.js`. Toàn màn hình gắn với `.game` và có dọn listener khi rời trang.
-- PWA: sửa danh sách file trong `sw.js` hoặc muốn buộc tải bản mới thì tăng `CACHE` (hiện `hocvui-v3`). Chỉ tài nguyên cùng origin được cache; ảnh câu hỏi dùng URL ngoài vẫn cần mạng.
+- PWA: sửa danh sách file trong `sw.js` hoặc muốn buộc tải bản mới thì tăng `CACHE` (hiện `hocvui-v4`). Chỉ tài nguyên cùng origin được cache; ảnh câu hỏi dùng URL ngoài vẫn cần mạng.
 - Deploy: chạy local bằng `node serve.js` → `http://localhost:8000`. `_headers` chỉ có tác dụng trên Cloudflare Pages/Netlify, server local bỏ qua. Trước khi đổi tên miền phải xuất JSON vì dữ liệu nằm trong `localStorage` theo từng origin.
+- Excel: logic đọc/ghi nằm ở `src/xlsx.js`; `src/main.js` chỉ nối nút và xử lý báo cáo. Đọc sheet đầu tiên; tiêu đề cột nhận không dấu/khác hoa thường; file 6 cột cũ tự nhận là `choice`. Muốn đổi cột/định dạng phải sửa `COLUMNS`, `headerMap` và `sheetXml`. Không thêm thư viện ZIP/Excel nếu chưa hỏi.
 - Dạng câu hỏi: `src/store.js` chuẩn hóa cả 3 loại và có `blankQuestion(type)`; `src/quizEngine.js` chấm số thứ tự (choice/boolean) hoặc chuỗi (`fill`). Muốn thêm loại mới: mở rộng `QUESTION_TYPES`, phần render trong `src/main.js` và `normalizeQuestion`.
-- Đã kiểm thử bằng CDP: chuẩn hóa dữ liệu, interface game (registry + vòng đời init/onAnswer/checkWin/destroy), đua xe, kéo co, đua vịt, nhảy bao bố (giao diện, trọn ván, hiệu ứng nhảy, chơi lại, mobile), nhập CSV (BOM/CRLF/ngoặc kép/nội dung nhiều dòng/dòng lỗi/headerless/lưu bộ), ảnh + thời gian (lưu/load, xem trước, đếm ngược, hết giờ tính sai, dừng đồng hồ khi trả lời, `timeLimit = 0`, mobile), âm thanh + toàn màn hình (đúng/sai/thắng phát đúng số nốt, tắt tiếng chặn âm và ghi nhớ, vào/ra toàn màn hình đúng khung chơi, mobile ẩn chữ giữ nút), PWA (manifest + icon 192/512/maskable, service worker activated, cache đủ app shell, chơi game và mở trình soạn khi ngắt mạng hoàn toàn, dữ liệu localStorage còn nguyên), ba dạng câu hỏi (soạn/lưu/mở lại, migration dữ liệu cũ, chấm đúng/sai, điền từ khớp biến thể và sai, Enter, hết giờ, đổi loại giữ nội dung, mobile), tổng hợp điểm, sidebar/responsive, nhập/xuất JSON — không lỗi Console.
-- Kiểm tra chuẩn bị deploy: không có đường dẫn tuyệt đối; 23 tài nguyên (HTML/CSS/JS/manifest/SW/icon) trả 200 qua `node serve.js`; chạy lại PWA offline — pass.
+- Đã kiểm thử bằng CDP: chuẩn hóa dữ liệu, interface game (registry + vòng đời init/onAnswer/checkWin/destroy), đua xe, kéo co, đua vịt, nhảy bao bố (giao diện, trọn ván, hiệu ứng nhảy, chơi lại, mobile), nhập CSV (BOM/CRLF/ngoặc kép/nội dung nhiều dòng/dòng lỗi/headerless/lưu bộ), ảnh + thời gian (lưu/load, xem trước, đếm ngược, hết giờ tính sai, dừng đồng hồ khi trả lời, `timeLimit = 0`, mobile), âm thanh + toàn màn hình (đúng/sai/thắng phát đúng số nốt, tắt tiếng chặn âm và ghi nhớ, vào/ra toàn màn hình đúng khung chơi, mobile ẩn chữ giữ nút), PWA (manifest + icon 192/512/maskable, service worker activated, cache đủ app shell, chơi game và mở trình soạn khi ngắt mạng hoàn toàn, dữ liệu localStorage còn nguyên), ba dạng câu hỏi (soạn/lưu/mở lại, migration dữ liệu cũ, chấm đúng/sai, điền từ khớp biến thể và sai, Enter, hết giờ, đổi loại giữ nội dung, mobile), Excel (đọc file thật do Microsoft Excel tạo có sharedStrings/tiếng Việt, đủ 3 loại câu, báo lỗi đúng số dòng, file 6 cột cũ, tệp hỏng, xuất rồi nhập lại, nhập trên giao diện, xuất từng bộ và tất cả, mở file xuất bằng Excel không báo sửa, mobile 390px), tổng hợp điểm, sidebar/responsive, nhập/xuất JSON — không lỗi Console.
+- Kiểm tra chuẩn bị deploy: không có đường dẫn tuyệt đối; 24 tài nguyên (HTML/CSS/JS/manifest/SW/icon) trả 200 qua `node serve.js`; chạy lại PWA offline — pass.
 
 ---
 

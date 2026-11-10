@@ -1,6 +1,6 @@
 // Service worker: lưu sẵn bộ khung ứng dụng để chạy ngoại tuyến.
 // Tăng số phiên bản mỗi khi sửa danh sách file hoặc muốn buộc tải bản mới.
-const CACHE = 'hocvui-v3';
+const CACHE = 'hocvui-v4';
 
 const ASSETS = [
   './',
@@ -14,6 +14,7 @@ const ASSETS = [
   './src/store.js',
   './src/utils.js',
   './src/csv.js',
+  './src/xlsx.js',
   './src/quizEngine.js',
   './src/icons.js',
   './src/stats.js',

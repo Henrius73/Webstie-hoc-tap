@@ -12,7 +12,7 @@ function init(container, players, ctx = {}) {
   const goal = Math.max(1, Number(ctx.totalTurns) || STEPS);
   gameState = {
     root: container,
-    players: players.map(p => ({ ...p, pos: 0 })),
+    players: players.map(p => ({ ...p, pos: Math.min(goal, Number(p.score) || 0) })),
     goal,
     winner: null,
   };
@@ -72,6 +72,18 @@ function render() {
   });
 }
 
+// Đồng bộ vị trí vịt theo điểm server gửi (chế độ chơi cùng lớp)
+function sync(players = []) {
+  if (!gameState) return;
+  const byId = new Map(players.map(p => [p.id, p]));
+  gameState.players = gameState.players.map(p => {
+    const fresh = byId.get(p.id) || p;
+    return { ...p, ...fresh, pos: Math.min(gameState.goal, Number(fresh.score) || 0) };
+  });
+  gameState.winner = gameState.players.find(p => p.pos >= gameState.goal) || null;
+  render();
+}
+
 // Gọi khi học sinh trả lời; đúng thì vịt của cả lớp bơi 1 bước
 function onAnswer(playerId, isCorrect) {
   if (!gameState || gameState.winner) return;
@@ -100,6 +112,7 @@ export default {
   icon: 'bird',
   description: 'Trả lời đúng, cả lớp cùng bơi 1 bước về đích.',
   init,
+  sync,
   onAnswer,
   checkWin,
   destroy,

@@ -1,6 +1,6 @@
 // Service worker: lưu sẵn bộ khung ứng dụng để chạy ngoại tuyến.
 // Tăng số phiên bản mỗi khi sửa danh sách file hoặc muốn buộc tải bản mới.
-const CACHE = 'hocvui-v7';
+const CACHE = 'hocvui-v9';
 
 const ASSETS = [
   './',
@@ -11,6 +11,7 @@ const ASSETS = [
   './assets/icons/icon-512.png',
   './assets/icons/icon-maskable-512.png',
   './src/main.js',
+  './src/config.js',
   './src/store.js',
   './src/utils.js',
   './src/csv.js',
@@ -19,8 +20,16 @@ const ASSETS = [
   './src/icons.js',
   './src/stats.js',
   './src/sound.js',
+  './src/lib/supabase.js',
+  './src/net/api.js',
+  './src/net/clock.js',
+  './src/ui/shared.js',
+  './src/ui/liveHub.js',
+  './src/ui/host/hostViews.js',
+  './src/ui/player/playerViews.js',
   './src/games/index.js',
   './src/games/race.js',
+  './src/games/raceLive.js',
   './src/games/tug.js',
   './src/games/duck.js',
   './src/games/sack-race.js',
@@ -77,6 +86,9 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // ảnh ngoài vẫn cần mạng
+
+  // Phòng chơi realtime luôn đi thẳng tới Node server, không lưu cache
+  if (url.pathname.includes('/api/')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(request));

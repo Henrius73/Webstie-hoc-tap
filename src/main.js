@@ -7,6 +7,9 @@ import { createQuiz } from './quizEngine.js';
 import { icon } from './icons.js';
 import { getHistory, saveMatch, clearHistory, summarize, formatDate } from './stats.js';
 import { playCorrect, playWrong, playWin, isMuted, toggleMuted } from './sound.js';
+import { renderLiveHub } from './ui/liveHub.js';
+import { renderHostRoom } from './ui/host/hostViews.js';
+import { renderPlayerRoom } from './ui/player/playerViews.js';
 
 const app = document.getElementById('app');
 const STUDENT_COLORS = ['#7c3aed', '#db2777', '#0284c7', '#d97706', '#059669', '#dc2626', '#0891b2', '#9333ea'];
@@ -42,11 +45,12 @@ function renderHome() {
       <div>
         <span class="hero__eyebrow">${icon('sparkles')} Học mà chơi · Chơi mà học</span>
         <h1>Lớp học sôi động cùng <em>trắc nghiệm</em></h1>
-        <p>Giáo viên tạo bộ câu hỏi trắc nghiệm trong vài phút. Học sinh nhập tên để tham gia,
-          cả lớp lần lượt trả lời — điểm từng bạn được tổng hợp ngay sau buổi làm bài.</p>
+        <p>Giáo viên tạo phòng, học sinh vào bằng mã trên điện thoại và cùng trả lời một bộ câu hỏi.
+          Mỗi bạn có điểm riêng, cả lớp thi đua trên đường đua ngay trên màn hình chung.</p>
         <div class="hero__actions">
-          <a class="btn btn--primary btn--lg" href="#/teacher">${icon('pencil-line')} Tạo bộ câu hỏi</a>
-          <a class="btn btn--ghost btn--lg" href="#/play">${icon('play')} Vào làm bài</a>
+          <a class="btn btn--primary btn--lg" href="#/play">${icon('gamepad-2')} Chơi cùng lớp</a>
+          <a class="btn btn--ghost btn--lg" href="#/teacher">${icon('pencil-line')} Tạo bộ câu hỏi</a>
+          <a class="btn btn--ghost btn--lg" href="#/solo">${icon('play')} Làm bài một máy</a>
         </div>
       </div>
       <div class="hero__art">
@@ -68,7 +72,7 @@ function renderHome() {
     <section class="stats">
       <div class="stat"><strong>${sets.length}</strong><span>Bộ câu hỏi đã tạo</span></div>
       <div class="stat"><strong>${totalQuestions}</strong><span>Câu hỏi sẵn sàng</span></div>
-      <div class="stat"><strong>1</strong><span>Câu hỏi mỗi học sinh</span></div>
+      <div class="stat"><strong>${MAX_STUDENTS}</strong><span>Học sinh mỗi phòng</span></div>
     </section>
 
     ${sets.length ? `
@@ -79,9 +83,9 @@ function renderHome() {
         </div>
         <div class="recent__list">
           ${sets.slice(0, 4).map(s => `
-            <a class="recent__item" href="#/play/${s.id}">
+            <a class="recent__item" href="#/solo/${s.id}">
               <strong>${esc(s.title || 'Bộ chưa đặt tên')}</strong>
-              <span>${s.questions.length} câu hỏi${s.subject ? ` · ${esc(s.subject)}` : ''} · Bấm để chơi</span>
+              <span>${s.questions.length} câu hỏi${s.subject ? ` · ${esc(s.subject)}` : ''} · Bấm để làm bài một máy</span>
             </a>`).join('')}
         </div>
       </section>` : ''}
@@ -109,13 +113,13 @@ function renderHome() {
       </article>
       <article class="feature">
         <div class="feature__icon">${icon('users')}</div>
-        <h3>Cả lớp cùng làm</h3>
-        <p>Học sinh nhập tên trực tiếp trên lớp. Mỗi bạn một lượt, điểm được tổng hợp riêng.</p>
+        <h3>Cả lớp cùng chơi</h3>
+        <p>Mỗi bạn vào phòng bằng mã trên điện thoại, trả lời đồng thời và thi đua trên màn hình chung.</p>
       </article>
       <article class="feature">
         <div class="feature__icon">${icon('chart-column')}</div>
         <h3>Điểm rõ từng bạn</h3>
-        <p>Kết thúc lượt làm bài, bảng điểm hiện số câu đúng, tỉ lệ và được lưu vào lịch sử.</p>
+        <p>Kết thúc trận, bảng điểm tổng hợp số câu đúng của từng học sinh và được lưu vào lịch sử.</p>
       </article>
     </section>`;
 }
@@ -623,7 +627,7 @@ function renderTeacher() {
   refreshSaved();
 }
 
-// ===== Trang thiết lập lượt làm bài =====
+// ===== Trang thiết lập lượt làm bài một máy =====
 function renderPlay(param) {
   const sets = getSets();
 
@@ -653,10 +657,13 @@ function renderPlay(param) {
   app.innerHTML = `
     <div class="page-head">
       <div>
-        <h1 class="page-title">Làm bài trắc nghiệm</h1>
-        <p class="page-sub">Chọn bộ câu hỏi, thêm tên học sinh và bắt đầu lượt làm bài.</p>
+        <h1 class="page-title">Làm bài một máy</h1>
+        <p class="page-sub">Cả lớp dùng chung một màn hình, lần lượt trả lời từng câu. Phù hợp khi không có Wi-Fi hoặc chỉ có một thiết bị.</p>
       </div>
-      <a class="btn btn--ghost" href="#/teacher">${icon('pencil-line')} Quản lý câu hỏi</a>
+      <div class="hero__actions" style="margin:0">
+        <a class="btn btn--primary" href="#/play">${icon('gamepad-2')} Chơi cùng lớp</a>
+        <a class="btn btn--ghost" href="#/teacher">${icon('pencil-line')} Quản lý câu hỏi</a>
+      </div>
     </div>
 
     <div class="setup__grid">
@@ -814,7 +821,7 @@ function renderGame(setId) {
   app.innerHTML = `
     <div class="game">
       <div class="game__bar">
-        <a class="btn btn--ghost btn--sm" href="#/play/${set.id}">${icon('arrow-left')} Đổi thiết lập</a>
+        <a class="btn btn--ghost btn--sm" href="#/solo/${set.id}">${icon('arrow-left')} Đổi thiết lập</a>
         <div class="game__meta">
           <span class="game__tag">${icon(info.icon)} ${info.name}</span>
           <span class="muted">${esc(set.title || 'Bộ chưa đặt tên')}</span>
@@ -1057,7 +1064,7 @@ function renderGame(setId) {
         <div class="overlay__actions">
           <button class="btn btn--primary" data-act="again">${icon('rotate-ccw')} Làm lại</button>
           <a class="btn btn--ghost" href="#/stats">${icon('chart-column')} Tổng hợp điểm</a>
-          <a class="btn btn--ghost" href="#/play/${set.id}">${icon('settings')} Đổi thiết lập</a>
+          <a class="btn btn--ghost" href="#/solo/${set.id}">${icon('settings')} Đổi thiết lập</a>
           <a class="btn btn--ghost" href="#/">${icon('house')} Trang chủ</a>
         </div>
       </div>`;
@@ -1202,7 +1209,8 @@ function renderStats() {
       </div>
       <div class="hero__actions" style="margin:0">
         ${history.length ? `<button class="btn btn--ghost" data-act="clear-history">${icon('trash-2')} Xóa lịch sử</button>` : ''}
-        <a class="btn btn--primary" href="#/play">${icon('play')} Vào làm bài</a>
+        <a class="btn btn--primary" href="#/play">${icon('gamepad-2')} Chơi cùng lớp</a>
+        <a class="btn btn--ghost" href="#/solo">${icon('play')} Làm bài một máy</a>
       </div>
     </div>
 
@@ -1240,9 +1248,10 @@ function renderStats() {
       <section class="empty">
         <div class="empty__icon">${icon('chart-column')}</div>
         <h2>Chưa có lượt làm bài nào</h2>
-        <p>Hoàn thành một lượt trắc nghiệm, bảng điểm sẽ xuất hiện ở đây.</p>
+        <p>Hoàn thành một trận chơi cùng lớp hoặc một lượt làm bài một máy, bảng điểm sẽ xuất hiện ở đây.</p>
         <div class="hero__actions" style="justify-content:center">
-          <a class="btn btn--primary" href="#/play">${icon('play')} Vào làm bài</a>
+          <a class="btn btn--primary" href="#/play">${icon('gamepad-2')} Chơi cùng lớp</a>
+          <a class="btn btn--ghost" href="#/solo">${icon('play')} Làm bài một máy</a>
         </div>
       </section>`}`;
 
@@ -1274,13 +1283,18 @@ function renderRoute() {
   // Tô đậm mục điều hướng đang mở
   document.querySelectorAll('#nav a').forEach(a => {
     const r = a.dataset.route;
-    const active = route === r || (route === 'game' && r === 'play') || (!route && r === 'home');
+    const active = route === r ||
+      (r === 'play' && ['game', 'solo', 'host', 'room'].includes(route)) ||
+      (!route && r === 'home');
     a.classList.toggle('is-active', active);
   });
 
   if (!route) renderHome();
   else if (route === 'teacher') renderTeacher();
-  else if (route === 'play') renderPlay(param);
+  else if (route === 'play') cleanupPage = renderLiveHub(app) || null;
+  else if (route === 'host') cleanupPage = renderHostRoom(app, param) || null;
+  else if (route === 'room') cleanupPage = renderPlayerRoom(app, param) || null;
+  else if (route === 'solo') renderPlay(param);
   else if (route === 'game') cleanupPage = renderGame(param) || null;
   else if (route === 'stats') renderStats();
   else { location.hash = '#/'; return; }

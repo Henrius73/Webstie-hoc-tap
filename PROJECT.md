@@ -1,396 +1,771 @@
-# PROJECT.md — Sân chơi học tập (tên tạm)
+# PROJECT.md — Giai đoạn 2: Trắc nghiệm nhiều người chơi cùng lúc (Supabase)
 
 > **Cách dùng file này**
-> - Đầu mỗi phiên làm việc với AI: dán toàn bộ file này (hoặc để Claude Code tự đọc) rồi nói rõ việc hôm nay.
-> - Cuối mỗi phiên: cập nhật mục **12. Trạng thái hiện tại** và, nếu có, mục **10. Quyết định đã chốt**.
-> - Chỗ nào ghi `[...]` là chỗ bạn cần điền hoặc xác nhận.
+> - Đầu mỗi phiên làm việc với AI: dán toàn bộ file (hoặc để Claude Code tự đọc), rồi nói rõ việc hôm nay.
+> - Cuối mỗi phiên: cập nhật mục **13. Trạng thái hiện tại** và mục **12. Quyết định đã chốt**.
+> - Chỗ nào ghi `[...]` hoặc `<...>` là chỗ bạn cần điền.
+> - File này nối tiếp bản PROJECT.md của giai đoạn 1 (chơi offline 2 đội trên một màn hình). Phần mini-game, dữ liệu câu hỏi, quy ước code giữ nguyên trừ chỗ được nói rõ ở đây.
 
 ---
 
-## 1. Tổng quan
+## 1. Tổng quan giai đoạn 2
 
-**Mục tiêu:** Website học tập. Giáo viên tạo bộ câu hỏi trắc nghiệm, học sinh nhập tên và trả lời theo lượt; điểm từng bạn được tổng hợp sau giờ làm bài. *(Tạm thời bỏ phần mini-game; mã nguồn game vẫn giữ trong `src/games/` để khôi phục sau.)*
+**Mục tiêu:** chuyển hệ thống từ "2 đội chơi trên cùng một màn hình" sang **nhiều học sinh chơi cùng lúc, mỗi người một thiết bị**. Giáo viên điều khiển ván chơi, tất cả học sinh cùng thấy một câu hỏi tại cùng một thời điểm, trả lời trong thời gian giới hạn, rồi cùng xem đáp án và bảng xếp hạng.
 
-**Người dùng chính**
-- Giáo viên: tạo/nhập câu hỏi, chọn game, điều khiển lớp chơi.
-- Học sinh: chơi trên màn hình chiếu chung (giai đoạn đầu) hoặc trên thiết bị riêng (giai đoạn sau).
+**Cách chơi (giống kiểu phòng chơi bằng mã)**
+1. Giáo viên đăng nhập, chọn bộ câu hỏi, bấm **Tạo phòng** → nhận mã 6 số.
+2. Học sinh mở web, nhập mã và tên, vào phòng chờ.
+3. Giáo viên bấm **Bắt đầu** → mọi người thấy câu 1 cùng lúc, đồng hồ đếm ngược chạy.
+4. Hết giờ (hoặc giáo viên bấm chốt) → công bố đáp án đúng, cộng điểm, cập nhật bảng xếp hạng / hoạt họa mini-game.
+5. Giáo viên bấm **Câu tiếp** → lặp lại đến hết, hiện bảng xếp hạng cuối.
 
-**Tiêu chí thành công của dự án:** một giáo viên không rành công nghệ có thể tạo bộ câu hỏi và cho cả lớp chơi trong vòng 5 phút.
+**Tiêu chí thành công**
+- 40 học sinh vào phòng bằng mã và chơi trọn 10 câu mà không ai bị kẹt.
+- Học sinh thấy câu hỏi mới trong khoảng 1 giây sau khi giáo viên bấm.
+- **Học sinh không thể xem đáp án đúng trước khi giáo viên công bố**, kể cả khi mở công cụ dành cho nhà phát triển của trình duyệt.
+- Điểm tính ở phía server, không sửa được từ trình duyệt.
 
-**Trong phạm vi (giai đoạn đầu)**
-- Chạy hoàn toàn trên trình duyệt, không cần backend
-- Cả lớp cùng chơi trên một màn hình: học sinh nhập tên và trả lời theo lượt
-- Câu hỏi trắc nghiệm 4 đáp án
-- Lưu bộ câu hỏi ngay trên máy (ngoại tuyến)
+**Trong phạm vi**
+- Backend dùng Supabase (Postgres + Auth + Realtime), frontend vẫn là HTML/CSS/JS thuần
+- Phòng chơi bằng mã, danh sách người chơi, bảng xếp hạng thời gian thực
+- Chấm điểm theo tốc độ trả lời, tính ở server
+- Các mini-game (đua xe, ...) hiển thị tiến độ của **tất cả người chơi**
+- Khôi phục khi học sinh mất mạng hoặc tải lại trang
 
 **Ngoài phạm vi (làm sau)**
-- Tài khoản, đăng nhập
-- Phòng chơi online bằng mã
-- Đồng bộ dữ liệu giữa nhiều thiết bị
 - Thanh toán, quảng cáo
+- Thống kê dài hạn theo học sinh/lớp
+- Thư viện bộ câu hỏi dùng chung giữa nhiều giáo viên
+- Chế độ tự học (mỗi học sinh tự chạy theo tốc độ riêng)
 
 ---
 
 ## 2. Quy tắc làm việc với AI
 
-1. Mỗi lần chỉ làm **một nhiệm vụ nhỏ** có tiêu chí nghiệm thu rõ ràng.
-2. Với việc chạm tới nhiều file: **đề xuất kế hoạch và danh sách file sẽ sửa trước**, chờ tôi duyệt rồi mới viết code.
-3. **Không thêm thư viện** hoặc đổi cấu trúc thư mục khi chưa hỏi.
-4. **Không sửa file ngoài phạm vi** nhiệm vụ. Nếu thấy cần sửa thêm, hãy báo lý do.
-5. Khi báo lỗi, giải thích **nguyên nhân trước**, sau đó mới đề xuất cách sửa.
-6. Giải thích bằng tiếng Việt, chú thích code bằng tiếng Việt, tên biến/hàm bằng tiếng Anh.
-7. Nếu yêu cầu chưa rõ, hỏi lại tối đa 2 câu thay vì tự đoán.
-8. Cuối phiên, tóm tắt: đã làm gì, còn dở gì, rủi ro nào.
+Giữ các quy tắc của giai đoạn 1 (một nhiệm vụ nhỏ mỗi lần, kế hoạch trước khi viết code, không thêm thư viện khi chưa hỏi, không sửa file ngoài phạm vi, giải thích bằng tiếng Việt). Bổ sung các quy tắc **bảo mật** sau, AI phải tuân thủ:
+
+1. **Không bao giờ** đưa secret key (`sb_secret_...`) hoặc `service_role` vào code chạy ở trình duyệt, vào repo, hay vào đoạn chat. Chỉ dùng URL và **publishable key**.
+2. **Không tắt RLS** để "cho nhanh". Nếu gặp lỗi quyền, hãy sửa policy hoặc `grant`, rồi giải thích lý do.
+3. **Đáp án đúng không bao giờ nằm trong dữ liệu gửi cho học sinh** trước khi công bố (xem mục 6).
+4. **Mọi thao tác ghi** (tạo phòng, vào phòng, gửi đáp án, chuyển câu) đi qua hàm RPC trong mục 6. Client không `insert/update` trực tiếp vào `rooms`, `players`, `answers`.
+5. Mọi thay đổi cấu trúc DB phải ghi thành **file migration** trong `supabase/migrations/` (không chỉ sửa tay trên Dashboard), kèm mô tả.
+6. Trước khi báo "xong" một tính năng liên quan đến quyền, AI phải liệt kê **những gì học sinh KHÔNG được làm** và chỉ cách kiểm tra từng điều đó.
 
 ---
 
-## 3. Stack và môi trường
+## 3. Luồng ván chơi (máy trạng thái)
 
-| Hạng mục | Lựa chọn | Ghi chú |
+```
+ lobby ──(giáo viên: Bắt đầu / Câu tiếp)──▶ question ──(hết giờ hoặc giáo viên chốt)──▶ reveal
+   ▲                                            ▲                                          │
+   │                                            └────────────(Câu tiếp)────────────────────┤
+   │                                                                                        │
+   └──────────────────────────────── (hết câu) ──────────────────────────────▶ finished ◀──┘
+```
+
+| Trạng thái (`rooms.phase`) | Học sinh thấy | Ai chuyển trạng thái |
 |---|---|---|
-| Ngôn ngữ | HTML + CSS + JavaScript (ES modules) | Không dùng bước build ở Mốc 1 |
-| Hoạt họa | CSS animation, nâng lên Canvas/Phaser khi cần | Quyết định ở Mốc 2 |
-| Routing | Hash (`#/`, `#/play`, `#/edit`) | Host tĩnh được |
-| Lưu dữ liệu | `localStorage` / IndexedDB | Giai đoạn ngoại tuyến |
-| Ngoại tuyến | Service Worker (PWA) | Mốc 3 |
-| Backend / phòng online | [Firebase / Supabase / Node + Socket.IO — chưa chọn] | Mốc 4 |
-| Hosting | Cloudflare Pages (chính) / Netlify (thay thế) | Trang tĩnh, deploy từ GitHub; dùng chung `_headers` |
-| Quản lý mã nguồn | Git + GitHub | Đã push nhánh `main` lên `Henrius73/Webstie-hoc-tap` |
+| `lobby` | Danh sách người vào phòng | Giáo viên: `host_next_question` |
+| `question` | Câu hỏi + 4 đáp án + đồng hồ đếm ngược | Giáo viên: `host_reveal` |
+| `reveal` | Đáp án đúng, điểm vừa được cộng, bảng xếp hạng | Giáo viên: `host_next_question` |
+| `finished` | Bảng xếp hạng cuối | — |
 
-**Chạy thử ở máy:** `node serve.js` rồi mở `http://localhost:8000` (không mở trực tiếp `index.html` vì ES modules/service worker cần HTTP).
-
-**Trình duyệt mục tiêu:** Chrome, Edge, Safari trên điện thoại và máy tính; ưu tiên chạy mượt trên điện thoại cấu hình thấp.
+**Nguyên tắc:** trạng thái ván chơi **nằm trong Postgres** (bảng `rooms`). Realtime chỉ có nhiệm vụ báo cho client biết "dữ liệu vừa đổi". Nhờ vậy học sinh mất mạng hay tải lại trang vẫn đọc lại được trạng thái hiện tại.
 
 ---
 
-## 4. Cấu trúc thư mục
+## 4. Kiến trúc
 
 ```
-game-hoc-tap/
-├── PROJECT.md
-├── DECISIONS.md          (tùy chọn, nếu mục 10 quá dài)
-├── index.html
-├── specs/                mỗi mốc/tính năng một file spec
-│   └── moc-1.md
-├── src/
-│   ├── main.js           khởi động, router
-│   ├── core/
-│   │   ├── quiz.js       bộ máy câu hỏi (lượt, điểm, kiểm tra đáp án)
-│   │   ├── store.js      đọc/ghi bộ câu hỏi
-│   │   └── audio.js      âm thanh
-│   ├── games/
-│   │   ├── race-car.js   đua xe
-│   │   └── tug-of-war.js kéo co
-│   ├── ui/               màn hình: trang chủ, soạn câu hỏi, chọn game, kết quả
-│   └── styles/
-├── assets/
-│   ├── images/
-│   └── sounds/
-└── data/
-    └── sample-questions.json
+ Giáo viên (trình duyệt)                         Học sinh (trình duyệt)
+   │  đăng nhập email                              │  đăng nhập ẩn danh (tự động)
+   │  RPC: create_room / host_next_question /      │  RPC: join_room / submit_answer
+   │       host_reveal                             │
+   └───────────────┬───────────────────────────────┴──────────────┐
+                   ▼                                              ▼
+        ┌────────────────────────── Supabase ──────────────────────────┐
+        │  Auth   → mỗi người có một user id (học sinh là ẩn danh)     │
+        │  Postgres → quiz_sets, questions, rooms, players, answers    │
+        │             + hàm RPC chấm điểm + RLS                        │
+        │  Realtime → đẩy thay đổi của rooms / players xuống client    │
+        └──────────────────────────────────────────────────────────────┘
 ```
+
+**Vì sao chọn cách này**
+- **Server chấm điểm:** đáp án đúng chỉ tồn tại trong bảng `questions` (chỉ giáo viên đọc được). Học sinh gửi lựa chọn, hàm `submit_answer` so với đáp án đúng và tính điểm.
+- **Đăng nhập ẩn danh cho học sinh:** học sinh không cần tài khoản, nhưng vẫn có `user id` riêng để RLS phân biệt người này với người khác và chống mạo danh.
+- **Giai đoạn đầu dùng Postgres Changes** (nghe thay đổi của bảng `rooms`, `players`). Cách này dễ làm, an toàn vì tự áp dụng RLS, và đủ cho một lớp học. Tài liệu Supabase khuyến nghị **Broadcast** làm lựa chọn mặc định khi cần mở rộng lớn, và dùng **Presence** khi thật sự cần (ví dụ hiện ai đang online); nếu sau này vượt quy mô lớp học, hãy cân nhắc chuyển sang Broadcast from Database.
 
 ---
 
-## 5. Mô hình dữ liệu
+## 5. Kết nối tới Supabase
 
-**Bộ câu hỏi**
-```json
-{
-  "id": "bo-001",
-  "title": "Ôn tập phép nhân lớp 3",
-  "subject": "Toán",
-  "questions": [
-    {
-      "id": "q1",
-      "type": "choice",
-      "text": "7 x 8 = ?",
-      "options": ["54", "56", "58", "64"],
-      "correctIndex": 1,
-      "answers": [],
-      "image": null,
-      "timeLimit": 20
-    }
-  ]
+### 5.1 Tạo project
+1. Vào supabase.com, đăng nhập, tạo **New project** (đặt tên, mật khẩu database, chọn region gần người dùng nhất).
+2. Chờ project khởi tạo xong. Ghi lại **Project URL** dạng `https://<project-ref>.supabase.co`.
+
+### 5.2 Lấy khóa API
+Trong Dashboard, mở phần **API Keys** của Project Settings. Các loại khóa:
+
+| Khóa | Dạng | Đặt ở đâu | RLS |
+|---|---|---|---|
+| Project URL | `https://<project-ref>.supabase.co` | Trình duyệt và server | — |
+| **Publishable key** | `sb_publishable_...` | **Trình duyệt, được phép công khai** | Có áp dụng |
+| Secret key | `sb_secret_...` | **Chỉ server, tuyệt đối không đưa vào trình duyệt/repo** | Bỏ qua RLS |
+| `anon` / `service_role` (cũ) | chuỗi JWT dài bắt đầu bằng `eyJ` | Tương ứng publishable / secret | — |
+
+- Dự án mới: **dùng publishable key**. Các khóa `anon`/`service_role` cũ vẫn chạy nhưng Supabase đã thông báo ngừng vào cuối năm 2026, nên hãy kiểm tra thông báo mới nhất trước khi dùng.
+- Dự án này **không cần** secret key ở đâu cả. Mọi việc đặc quyền đã nằm trong hàm RPC (`security definer`).
+
+### 5.3 Bật đăng nhập ẩn danh
+Trong mục **Authentication** của Dashboard, bật tùy chọn **Anonymous sign-ins**. Nếu không bật, học sinh sẽ gặp lỗi khi gọi `signInAnonymously()`.
+
+### 5.4 Tạo cấu trúc database
+Mở **SQL Editor**, dán toàn bộ SQL ở mục 6 và chạy. Lưu thành file `supabase/migrations/0001_multiplayer.sql` trong repo.
+
+### 5.5 Bật Realtime cho bảng
+Chạy thêm lệnh sau (một lần):
+```sql
+alter publication supabase_realtime add table public.rooms, public.players;
+```
+
+### 5.6 Cấu hình đăng nhập giáo viên
+Giáo viên cần tài khoản thật (không ẩn danh) để lưu bộ câu hỏi. Cách đơn giản: đăng nhập bằng email (mã OTP/magic link). Trong **Authentication → URL Configuration**, thêm địa chỉ trang web của bạn (cả `http://localhost:...` khi phát triển và tên miền thật) vào danh sách địa chỉ chuyển hướng được phép.
+
+### 5.7 Kết nối từ code (HTML/JS thuần, ES modules)
+
+**`src/config.js`** — hai giá trị này công khai được; sức mạnh bảo mật nằm ở RLS.
+```js
+export const SUPABASE_URL = 'https://<project-ref>.supabase.co';
+export const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_...';
+// KHÔNG BAO GIỜ đặt secret key ở đây.
+```
+
+**`src/lib/supabase.js`**
+```js
+// Nên ghim phiên bản cụ thể thay vì @2 khi đưa vào sản phẩm thật
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '../config.js';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Học sinh: tự đăng nhập ẩn danh nếu chưa có phiên. Giáo viên: anonymous = false.
+export async function ensureSession({ anonymous = true } = {}) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) return session.user;
+  if (!anonymous) return null;                       // giáo viên phải đăng nhập bằng email
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  return data.user;
+}
+
+// Giáo viên: gửi mã đăng nhập qua email
+export async function teacherSignIn(email) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email, options: { emailRedirectTo: location.origin },
+  });
+  if (error) throw error;
 }
 ```
 
-**Ba loại câu hỏi** (`type`)
-| Loại | `options` | `correctIndex` | `answers` |
-|---|---|---|---|
-| `choice` — trắc nghiệm 4 đáp án | 4 chuỗi | 0–3 | `[]` |
-| `boolean` — đúng/sai | `["Đúng","Sai"]` | 0 (Đúng) hoặc 1 (Sai) | `[]` |
-| `fill` — điền từ | `[]` | 0 (không dùng) | 1–5 cách viết được chấp nhận |
-
-Dữ liệu cũ chưa có `type` được tự hiểu là `choice`. Câu `fill` được chấm sau khi cắt khoảng trắng, gộp khoảng trắng giữa, không phân biệt hoa/thường, chuẩn hóa NFC; **giữ dấu tiếng Việt**.
-
-**Học sinh trong trận**
-```json
-{ "id": "student-1", "name": "Minh Anh", "color": "#7c3aed", "correct": 1, "total": 1 }
+**Thử kết nối** (chạy ở Console của trình duyệt hoặc trong một trang test):
+```js
+import { supabase, ensureSession } from './src/lib/supabase.js';
+const user = await ensureSession();
+console.log('user id:', user.id);
+console.log('giờ server:', (await supabase.rpc('server_now')).data);   // có giá trị = kết nối OK
 ```
 
-**Quy ước**
-- Mỗi học sinh trả lời đúng **1 câu** trong một lượt làm bài; lượt kết thúc khi mọi học sinh đã trả lời.
-- Hiện tại màn làm bài chỉ hiện câu hỏi + lượt + đồng hồ + phản hồi; điểm từng bạn hiện ở màn kết thúc. Đường đua mini-game tạm ngắt khỏi giao diện.
-- `correctIndex` tính từ 0.
-- Mọi dữ liệu nhập từ ngoài (Excel, CSV) phải được kiểm tra hợp lệ trước khi dùng.
+### 5.8 Lỗi thường gặp
 
-**Định dạng Excel cho phép nhập/xuất hàng loạt** (đủ 3 loại câu)
-Mỗi sheet là một bộ câu hỏi; dòng 1 là tiêu đề 10 cột:
-| Cột | Ý nghĩa |
-|---|---|
-| `Loại câu hỏi` | `Trắc nghiệm`, `Đúng/Sai` hoặc `Điền từ`; để trống = `choice`; nhận cả chữ không dấu |
-| `Câu hỏi` | Nội dung câu hỏi |
-| `Đáp án A`–`Đáp án D` | 4 đáp án của câu `choice` |
-| `Đáp án đúng` | `A`–`D` với `choice`; `Đúng`/`Sai` với `boolean` |
-| `Các đáp án đúng` | Với `fill`: 1–5 cách viết, cách nhau bằng `\|` |
-| `Ảnh (URL)` | URL ảnh minh họa, có thể để trống |
-| `Thời gian (giây)` | 0–600; để trống = 0 (không giới hạn) |
-
-- Nhập Excel đọc **sheet đầu tiên**, thêm câu hợp lệ vào bộ đang soạn (không tự lưu) và báo lỗi theo số dòng Excel; dòng lỗi bị bỏ qua.
-- Vẫn nhận file 6 cột cũ (có hoặc không tiêu đề) và coi là câu `choice`.
-- Xuất Excel: mỗi bộ một sheet; xuất tất cả tạo workbook nhiều sheet theo thứ tự danh sách (mới lưu trước).
-- Chỉ hỗ trợ `.xlsx` hiện đại (ZIP + XML); file `.xls` cũ phải lưu lại thành `.xlsx`.
-
-**Định dạng CSV cho phép nhập hàng loạt** (chỉ tạo câu `choice`)
-```
-Câu hỏi,Đáp án A,Đáp án B,Đáp án C,Đáp án D,Đáp án đúng (A-D)
-```
+| Hiện tượng | Nguyên nhân thường gặp | Cách xử lý |
+|---|---|---|
+| `Anonymous sign-ins are disabled` | Chưa bật ở mục 5.3 | Bật Anonymous sign-ins |
+| `permission denied for table ...` | Thiếu `grant` cho role `authenticated` | Kiểm tra phần "Quyền bảng" trong SQL |
+| Truy vấn trả về mảng rỗng dù có dữ liệu | RLS chặn (không phải thành viên phòng) | Kiểm tra đã gọi `join_room` chưa |
+| `Could not find the function ...` | Sai tên/tham số RPC, hoặc chưa chạy SQL | Kiểm tra tên tham số `p_...` khớp SQL |
+| Không nhận được sự kiện realtime | Chưa chạy lệnh `alter publication` ở 5.5 | Chạy lại lệnh và kiểm tra bảng trong publication |
+| Lỗi 401 khi dùng secret key trên web | Supabase chặn secret key ở trình duyệt | Đừng dùng secret key ở client |
 
 ---
 
-## 6. Kiến trúc game
+## 6. Cơ sở dữ liệu (SQL)
 
-> **Trạng thái 2026-11-10:** phần mini-game đang **tạm ngắt** khỏi giao diện và luồng làm bài. `src/main.js` không import `src/games/index.js`; màn làm bài chỉ dùng `src/quizEngine.js`. Mã nguồn game và interface bên dưới vẫn giữ nguyên để khôi phục sau.
+Dán nguyên khối này vào SQL Editor. Thiết kế dựa trên 4 ý:
 
-Mọi game dùng chung một interface, nhờ đó thêm game mới chỉ cần viết thêm một file trong `src/games/`.
+1. **Bảng `questions` (có đáp án đúng) chỉ giáo viên chủ bộ câu hỏi đọc được.**
+2. Khi giáo viên chuyển câu, hàm `host_next_question` chép phần đề **không có đáp án** vào `rooms.question`. Chỉ khi chốt (`host_reveal`) mới điền `rooms.correct_index`.
+3. **Client không có quyền ghi** vào `rooms`, `players`, `answers`. Mọi việc đi qua hàm RPC kiểm tra quyền và chấm điểm trong server.
+4. Điểm của người chơi chỉ được cộng lúc `host_reveal`, để không ai suy ra được kết quả của người khác trước khi công bố.
+
+**Cách tính điểm:** trả lời đúng ngay lập tức = 1000 điểm, giảm dần tuyến tính còn 500 điểm khi sát giờ; sai hoặc không trả lời = 0. Chỉnh công thức trong hàm `submit_answer`.
+
+```sql
+-- =====================================================================
+-- 1. BẢNG
+-- =====================================================================
+create table public.quiz_sets (
+  id         uuid primary key default gen_random_uuid(),
+  owner_id   uuid not null references auth.users(id) on delete cascade,
+  title      text not null check (char_length(title) between 1 and 120),
+  created_at timestamptz not null default now()
+);
+
+create table public.questions (
+  id            uuid primary key default gen_random_uuid(),
+  quiz_id       uuid not null references public.quiz_sets(id) on delete cascade,
+  q_index       int  not null check (q_index >= 0),          -- thứ tự câu, bắt đầu từ 0
+  text          text not null,
+  options       jsonb not null check (jsonb_typeof(options) = 'array' and jsonb_array_length(options) = 4),
+  correct_index int  not null check (correct_index between 0 and 3),
+  image_url     text,
+  time_limit    int  not null default 20 check (time_limit between 5 and 300),
+  unique (quiz_id, q_index)
+);
+
+create table public.rooms (
+  id                  uuid primary key default gen_random_uuid(),
+  code                text not null unique,                   -- mã 6 số để học sinh vào phòng
+  host_id             uuid not null references auth.users(id),
+  quiz_id             uuid not null references public.quiz_sets(id),
+  phase               text not null default 'lobby'
+                        check (phase in ('lobby','question','reveal','finished')),
+  total_questions     int  not null default 0,                -- tổng số câu của bộ câu hỏi
+  q_index             int  not null default -1,               -- -1 = chưa bắt đầu
+  question            jsonb,                                  -- đề đang hiển thị, KHÔNG chứa đáp án đúng
+  correct_index       int,                                    -- chỉ được điền khi phase = 'reveal'
+  question_started_at timestamptz,
+  question_ends_at    timestamptz,
+  created_at          timestamptz not null default now()
+);
+
+create table public.players (
+  id        uuid primary key default gen_random_uuid(),
+  room_id   uuid not null references public.rooms(id) on delete cascade,
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  name      text not null check (char_length(name) between 1 and 20),
+  score     int  not null default 0,
+  joined_at timestamptz not null default now(),
+  unique (room_id, user_id)
+);
+
+create table public.answers (
+  player_id   uuid not null references public.players(id) on delete cascade,
+  room_id     uuid not null references public.rooms(id) on delete cascade,
+  q_index     int  not null,
+  choice      int  not null check (choice between 0 and 3),
+  is_correct  boolean not null,
+  points      int  not null default 0,
+  answered_at timestamptz not null default now(),
+  primary key (player_id, q_index)
+);
+
+create index on public.players (room_id);
+create index on public.answers (room_id, q_index);
+
+-- =====================================================================
+-- 2. HÀM TIỆN ÍCH
+-- =====================================================================
+-- Kiểm tra người dùng hiện tại là giáo viên hoặc học sinh của phòng.
+-- SECURITY DEFINER để dùng trong policy mà không bị đệ quy RLS.
+create or replace function public.is_room_member(p_room uuid)
+returns boolean
+language sql stable security definer set search_path = public
+as $$
+  select exists (select 1 from public.players where room_id = p_room and user_id = auth.uid())
+      or exists (select 1 from public.rooms   where id      = p_room and host_id = auth.uid());
+$$;
+
+-- Giờ của server, để client đồng bộ đồng hồ đếm ngược.
+create or replace function public.server_now()
+returns timestamptz
+language sql stable
+as $$ select now(); $$;
+
+-- =====================================================================
+-- 3. HÀM NGHIỆP VỤ (client chỉ được ghi dữ liệu qua các hàm này)
+-- =====================================================================
+create or replace function public.create_room(p_quiz_id uuid)
+returns public.rooms
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_code text;
+  v_room public.rooms;
+begin
+  if not exists (select 1 from public.quiz_sets where id = p_quiz_id and owner_id = auth.uid()) then
+    raise exception 'not_owner';
+  end if;
+  loop
+    v_code := lpad(floor(random() * 1000000)::int::text, 6, '0');
+    exit when not exists (select 1 from public.rooms where code = v_code);
+  end loop;
+  insert into public.rooms (code, host_id, quiz_id, total_questions)
+  values (v_code, auth.uid(), p_quiz_id,
+          (select count(*) from public.questions where quiz_id = p_quiz_id))
+  returning * into v_room;
+  return v_room;
+end $$;
+
+create or replace function public.join_room(p_code text, p_name text)
+returns public.players
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_room   public.rooms;
+  v_player public.players;
+begin
+  select * into v_room from public.rooms where code = p_code and phase <> 'finished';
+  if not found then
+    raise exception 'room_not_found';
+  end if;
+  insert into public.players (room_id, user_id, name)
+  values (v_room.id, auth.uid(), left(trim(p_name), 20))
+  on conflict (room_id, user_id) do update set name = excluded.name
+  returning * into v_player;
+  return v_player;
+end $$;
+
+-- Giáo viên: sang câu tiếp theo (hoặc kết thúc nếu hết câu)
+create or replace function public.host_next_question(p_room_id uuid)
+returns public.rooms
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_room public.rooms;
+  v_q    public.questions;
+begin
+  select * into v_room from public.rooms
+   where id = p_room_id and host_id = auth.uid() and phase in ('lobby','reveal')
+   for update;
+  if not found then
+    raise exception 'invalid_state';
+  end if;
+
+  select * into v_q from public.questions
+   where quiz_id = v_room.quiz_id and q_index = v_room.q_index + 1;
+
+  if not found then
+    update public.rooms
+       set phase = 'finished', question = null, correct_index = null
+     where id = v_room.id returning * into v_room;
+    return v_room;
+  end if;
+
+  update public.rooms set
+    phase               = 'question',
+    q_index             = v_q.q_index,
+    question            = jsonb_build_object('text', v_q.text, 'options', v_q.options,
+                                             'image_url', v_q.image_url, 'time_limit', v_q.time_limit),
+    correct_index       = null,
+    question_started_at = now(),
+    question_ends_at    = now() + make_interval(secs => v_q.time_limit)
+  where id = v_room.id
+  returning * into v_room;
+  return v_room;
+end $$;
+
+-- Học sinh: gửi đáp án. Server tự chấm điểm; client không biết đáp án đúng.
+create or replace function public.submit_answer(p_room_id uuid, p_choice int)
+returns jsonb
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_player  public.players;
+  v_room    public.rooms;
+  v_key     int;
+  v_limit   int;
+  v_elapsed numeric;
+  v_ok      boolean;
+  v_pts     int;
+begin
+  select * into v_player from public.players where room_id = p_room_id and user_id = auth.uid();
+  if not found then raise exception 'not_in_room'; end if;
+
+  select * into v_room from public.rooms where id = p_room_id;
+  if v_room.phase <> 'question' or now() > v_room.question_ends_at + interval '1 second' then
+    raise exception 'closed';
+  end if;
+
+  select correct_index, time_limit into v_key, v_limit
+    from public.questions where quiz_id = v_room.quiz_id and q_index = v_room.q_index;
+
+  v_ok      := (p_choice = v_key);
+  v_elapsed := extract(epoch from (now() - v_room.question_started_at));
+  -- Đúng: 1000 điểm nếu trả lời ngay, giảm dần còn 500 điểm khi hết giờ. Sai: 0 điểm.
+  v_pts     := case when v_ok
+                    then round(1000 * (1 - least(v_elapsed / v_limit, 1) / 2))::int
+                    else 0 end;
+
+  insert into public.answers (player_id, room_id, q_index, choice, is_correct, points)
+  values (v_player.id, p_room_id, v_room.q_index, p_choice, v_ok, v_pts)
+  on conflict (player_id, q_index) do nothing;
+
+  return jsonb_build_object('accepted', found);   -- false nếu đã trả lời câu này rồi
+end $$;
+
+-- Giáo viên: chốt câu hỏi, công bố đáp án đúng và cộng điểm
+create or replace function public.host_reveal(p_room_id uuid)
+returns public.rooms
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_room public.rooms;
+  v_key  int;
+begin
+  select * into v_room from public.rooms
+   where id = p_room_id and host_id = auth.uid() and phase = 'question'
+   for update;
+  if not found then raise exception 'invalid_state'; end if;
+
+  select correct_index into v_key from public.questions
+   where quiz_id = v_room.quiz_id and q_index = v_room.q_index;
+
+  update public.players p set score = p.score + a.points
+    from public.answers a
+   where a.player_id = p.id and a.room_id = v_room.id
+     and a.q_index = v_room.q_index and a.is_correct;
+
+  update public.rooms set phase = 'reveal', correct_index = v_key
+   where id = v_room.id returning * into v_room;
+  return v_room;
+end $$;
+
+-- =====================================================================
+-- 4. BẢO MẬT: RLS + QUYỀN
+-- =====================================================================
+alter table public.quiz_sets enable row level security;
+alter table public.questions enable row level security;
+alter table public.rooms     enable row level security;
+alter table public.players   enable row level security;
+alter table public.answers   enable row level security;
+
+-- Giáo viên (tài khoản đăng nhập thật, không phải ẩn danh) quản lý bộ câu hỏi của mình
+create policy quiz_sets_owner on public.quiz_sets for all to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid()
+              and coalesce((auth.jwt() ->> 'is_anonymous')::boolean, false) = false);
+
+create policy questions_owner on public.questions for all to authenticated
+  using (exists (select 1 from public.quiz_sets q where q.id = quiz_id and q.owner_id = auth.uid()))
+  with check (exists (select 1 from public.quiz_sets q where q.id = quiz_id and q.owner_id = auth.uid()));
+
+-- Phòng/người chơi: chỉ thành viên của phòng mới đọc được; KHÔNG có policy ghi
+create policy rooms_member_read   on public.rooms   for select to authenticated using (public.is_room_member(id));
+create policy players_member_read on public.players for select to authenticated using (public.is_room_member(room_id));
+
+-- Đáp án: học sinh chỉ đọc bài của mình, giáo viên đọc cả phòng
+create policy answers_read on public.answers for select to authenticated
+  using (
+    exists (select 1 from public.players p where p.id = player_id and p.user_id = auth.uid())
+    or exists (select 1 from public.rooms r where r.id = room_id and r.host_id = auth.uid())
+  );
+
+-- Quyền bảng: client không được ghi trực tiếp vào phòng/người chơi/đáp án
+revoke all on public.quiz_sets, public.questions, public.rooms, public.players, public.answers from anon, authenticated;
+grant select, insert, update, delete on public.quiz_sets, public.questions to authenticated;
+grant select on public.rooms, public.players, public.answers to authenticated;
+
+-- Quyền gọi hàm: chỉ người đã đăng nhập (kể cả ẩn danh)
+revoke execute on function
+  public.is_room_member(uuid), public.server_now(), public.create_room(uuid),
+  public.join_room(text, text), public.host_next_question(uuid),
+  public.submit_answer(uuid, int), public.host_reveal(uuid)
+from public, anon;
+grant execute on function
+  public.is_room_member(uuid), public.server_now(), public.create_room(uuid),
+  public.join_room(text, text), public.host_next_question(uuid),
+  public.submit_answer(uuid, int), public.host_reveal(uuid)
+to authenticated;
+```
+
+```sql
+-- Dọn phòng cũ (chạy tay, hoặc đặt lịch bằng pg_cron nếu muốn)
+delete from public.rooms where created_at < now() - interval '1 day';
+```
+
+> **Đã kiểm thử:** logic các hàm, RLS và quyền trong khối SQL trên đã được chạy thử trên PostgreSQL mô phỏng (đầy đủ kịch bản: tạo phòng, vào phòng, trả lời đúng/sai, trả lời lặp, trả lời sau giờ, học sinh cố ghi trực tiếp, người lạ đọc phòng). Phần đặc thù của Supabase (Auth thật, claim `is_anonymous`, Realtime) **chưa** được thử, nên cần chạy lại các kiểm tra ở mục 10 trên project Supabase thật.
+
+---
+
+## 7. Code client: lớp giao tiếp (`src/net/api.js`)
 
 ```js
-// Mỗi game export một đối tượng có dạng:
+import { supabase } from '../lib/supabase.js';
+
+const unwrap = ({ data, error }) => { if (error) throw error; return data; };
+
+// ---- Giáo viên ----
+export const createRoom   = async (quizId) => unwrap(await supabase.rpc('create_room', { p_quiz_id: quizId }));
+export const nextQuestion = async (roomId) => unwrap(await supabase.rpc('host_next_question', { p_room_id: roomId }));
+export const reveal       = async (roomId) => unwrap(await supabase.rpc('host_reveal', { p_room_id: roomId }));
+
+// ---- Học sinh ----
+export const joinRoom     = async (code, name) => unwrap(await supabase.rpc('join_room', { p_code: code, p_name: name }));
+export const submitAnswer = async (roomId, choice) => unwrap(await supabase.rpc('submit_answer', { p_room_id: roomId, p_choice: choice }));
+
+// ---- Đọc trạng thái hiện tại (dùng khi vào phòng, tải lại trang, hoặc kết nối lại) ----
+export async function fetchSnapshot(roomId) {
+  const [room, players] = await Promise.all([
+    supabase.from('rooms').select('*').eq('id', roomId).single(),
+    supabase.from('players').select('id,name,score').eq('room_id', roomId).order('score', { ascending: false }),
+  ]);
+  if (room.error) throw room.error;
+  if (players.error) throw players.error;
+  return { room: room.data, players: players.data };
+}
+
+// ---- Nghe thay đổi theo thời gian thực ----
+export function subscribeRoom(roomId, { onRoom, onPlayers, onStatus }) {
+  const channel = supabase
+    .channel(`room:${roomId}`)
+    .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
+        (payload) => onRoom(payload.new))
+    .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` },
+        (payload) => onPlayers(payload))
+    .subscribe((status) => onStatus?.(status));
+  return () => supabase.removeChannel(channel);        // gọi khi rời phòng
+}
+```
+
+**Quy tắc khi nghe realtime**
+- Mỗi lần trạng thái kênh trở thành `SUBSCRIBED` (kể cả sau khi mạng chập chờn rồi nối lại), **gọi lại `fetchSnapshot`** để không bỏ sót thay đổi xảy ra lúc mất kết nối.
+- Hủy đăng ký (`removeChannel`) khi rời phòng để không rò rỉ kết nối.
+
+**Đồng bộ đồng hồ đếm ngược** (`src/net/clock.js`) — không dùng giờ của máy học sinh, vì đồng hồ mỗi máy lệch nhau:
+```js
+import { supabase } from '../lib/supabase.js';
+
+let offsetMs = 0;
+export async function syncClock() {
+  const t0 = Date.now();
+  const { data } = await supabase.rpc('server_now');
+  const t1 = Date.now();
+  offsetMs = new Date(data).getTime() - (t0 + t1) / 2;     // bù độ trễ mạng một chiều
+}
+export const serverNow = () => Date.now() + offsetMs;
+export const msLeft = (room) =>
+  Math.max(0, new Date(room.question_ends_at).getTime() - serverNow());
+```
+Gọi `syncClock()` khi vào phòng và định kỳ (ví dụ mỗi vài phút). Giao diện chỉ **hiển thị** thời gian còn lại; việc chặn trả lời quá giờ do server quyết định (`submit_answer` có dung sai 1 giây).
+
+**Khôi phục sau khi tải lại trang:** phiên ẩn danh của học sinh được lưu trong trình duyệt, nên `user id` giữ nguyên. Lưu `roomId` và mã phòng vào `sessionStorage`; khi mở lại, gọi `fetchSnapshot` rồi đăng ký realtime. `join_room` an toàn khi gọi lại (cập nhật tên thay vì tạo trùng).
+
+---
+
+## 8. Mini-game trong chế độ nhiều người
+
+Giai đoạn 1: game nhận 2 đội. Giai đoạn 2: game **chỉ hiển thị**, nhận toàn bộ danh sách người chơi và trạng thái phòng. Mọi tính toán điểm đã nằm ở server.
+
+```js
+// src/games/<ten-game>.js — interface mới
 export default {
-  id: "race-car",
-  name: "Đua xe",
+  id: 'race-car',
+  name: 'Đua xe',
 
-  // Dựng giao diện game vào container; nhận người chơi đại diện cả lớp
-  // và options = { questions, totalTurns }
-  init(container, players, options) {},
+  mount(container) {},                       // dựng giao diện một lần
 
-  // Gọi khi học sinh trả lời; isCorrect = true thì cả lớp tiến lên
-  onAnswer(playerId, isCorrect) {},
+  // Gọi mỗi khi dữ liệu phòng hoặc người chơi thay đổi
+  update({ phase, qIndex, totalQuestions, players, me }) {
+    // players: [{ id, name, score }]
+    // Vị trí về đích gợi ý: progress = score / (totalQuestions * 1000)  → giá trị 0..1
+  },
 
-  // Trả về người chơi khi về đích (toàn bộ câu đúng), ngược lại null
-  checkWin() {},
-
-  // Dọn dẹp khi thoát game
-  destroy() {},
+  unmount() {},                              // dọn dẹp khi thoát
 };
 ```
 
-**Luồng một lượt làm bài (hiện tại)**
-1. Chọn bộ câu hỏi → nhập tên từng học sinh tham gia.
-2. `quiz.js` đưa từng câu cho học sinh đến lượt (mỗi bạn 1 câu).
-3. Học sinh chọn đáp án → `quizEngine.js` kiểm tra và cộng điểm cho bạn đó.
-4. Khi mọi học sinh đã trả lời, hiện bảng tổng hợp điểm từng học sinh và lưu lịch sử với `gameId: 'quiz'`.
+- Với phòng đông người, hiển thị **top 5–8 người** cùng "vị trí của bạn" thay vì vẽ tất cả.
+- Hoạt họa chạy ở pha `reveal` (sau khi điểm được cộng), không chạy lúc đang trả lời.
+- Game theo đội (kéo co) cần thêm cột `players.team` và cách chia đội; làm ở mốc cuối (mục 9).
 
-**Nguyên tắc (khi khôi phục game):** `quiz.js` không biết gì về hình ảnh game, game không biết gì về dữ liệu câu hỏi. Hai phần chỉ giao tiếp qua `onAnswer`.
-
----
-
-## 7. Danh sách game
-
-| Game | Cách chơi | Trạng thái |
-|---|---|---|
-| Đua xe | Đúng → xe của cả lớp tiến 1 bước | [x] đã xong · tạm ngắt |
-| Kéo co | Đúng → kéo dây về phía lớp; sai bị thử thách kéo lại | [x] đã xong · tạm ngắt |
-| Đua vịt | Giống đua xe, đổi giao diện | [x] đã xong · tạm ngắt |
-| Đua thuyền rồng | Giống đua xe, nhiều làn | [ ] chưa làm |
-| Nhảy bao bố | Đúng → nhảy 1 bước | [x] đã xong · tạm ngắt |
-| Tung xúc xắc | Đúng → tung xúc xắc, đi số ô tương ứng | [ ] chưa làm |
-
-Hiện tại màn **Làm bài** không hiện chọn game; tất cả học sinh làm trắc nghiệm và điểm được tính riêng cho từng bạn.
-
----
-
-## 8. Quy ước code và giao diện
-
-**Code**
-- Tên file: `kebab-case.js`. Tên hàm/biến: `camelCase`. Hằng số: `UPPER_SNAKE_CASE`.
-- Mỗi hàm làm một việc; hàm dài hơn khoảng 40 dòng thì cân nhắc tách.
-- Không dùng biến toàn cục; trạng thái ván chơi nằm trong một đối tượng `gameState`.
-- Có xử lý lỗi cho thao tác đọc/ghi `localStorage` (có thể bị chặn hoặc đầy).
-
-**Giao diện**
-- Thiết kế **ưu tiên điện thoại**, sau đó mở rộng lên máy tính/máy chiếu.
-- Chữ câu hỏi to, đọc được từ cuối lớp học; nút đáp án đủ lớn để chạm (tối thiểu 48px).
-- Không truyền đạt thông tin chỉ bằng màu sắc (đúng/sai cần thêm biểu tượng hoặc chữ).
-- Có nút bật/tắt âm thanh và nút toàn màn hình.
-- Toàn bộ chữ hiển thị bằng tiếng Việt, đặt trong một file chuỗi riêng để sau này dịch được.
+**Cấu trúc thư mục bổ sung**
+```
+supabase/
+└── migrations/
+    └── 0001_multiplayer.sql
+src/
+├── config.js
+├── lib/supabase.js
+├── net/
+│   ├── api.js
+│   └── clock.js
+├── ui/
+│   ├── host/        (chọn bộ câu hỏi, phòng chờ, điều khiển ván)
+│   └── player/      (nhập mã, phòng chờ, trả lời, kết quả)
+└── games/           (các mini-game theo interface mới)
+```
 
 ---
 
 ## 9. Lộ trình
 
-**Mốc 1: Quiz engine + game đua xe (khoảng 1 tuần)**
-- [x] Dựng khung trang, router, định dạng dữ liệu, 5 câu mẫu
-- [x] Quiz engine: chia lượt, chấm điểm theo từng học sinh
-- [x] Game đua xe với hoạt họa CSS
-- [x] Màn hình thắng, chơi lại, âm thanh cơ bản
-- [ ] Deploy lên hosting và thử trên điện thoại
+**M0 — Kết nối Supabase (khoảng 0,5 ngày)**
+*(Chưa có project thật; mã đã sẵn sàng.)*
+- [ ] Tạo project, lấy URL và publishable key, bật Anonymous sign-ins
+- [ ] `config.js`, `supabase.js`, chạy được đoạn "Thử kết nối" ở mục 5.7
 
-*Nghiệm thu:* chơi trọn một ván từ chọn bộ câu hỏi đến màn hình thắng, không lỗi Console.
+*Nghiệm thu:* Console in ra `user id` và giờ server.
 
-**Mốc 2: Nhiều game + soạn câu hỏi**
-- [x] Chuẩn hóa interface game theo mục 6
-- [x] Thêm 3–4 game (đua xe, kéo co, đua vịt, nhảy bao bố)
-- [x] Trình soạn câu hỏi, nhập từ CSV
+**M1 — Database và bảo mật (1–2 ngày)**
+*(Mã đã xong; chưa chạy migration trên Postgres thật.)*
+- [ ] Chạy SQL mục 6 thành migration, bật Realtime cho `rooms`, `players`
+- [ ] Thử các kịch bản bảo mật ở mục 10 trực tiếp bằng SQL Editor / 2 trình duyệt
 
-**Mốc 3: Hoàn thiện trải nghiệm**
-- [x] PWA chạy ngoại tuyến
-- [x] Âm thanh, toàn màn hình (responsive đã xong)
-- [x] Ảnh minh họa và giới hạn thời gian cho câu hỏi
-- [x] Thêm dạng câu hỏi đúng/sai, điền từ
-- [x] Nhập/xuất Excel `.xlsx` cho cả 3 loại câu (tự đọc/ghi ZIP+XML, không dùng thư viện ngoài)
+*Nghiệm thu:* toàn bộ danh sách "học sinh KHÔNG được làm" ở mục 10 đều bị chặn.
 
-**Mốc 4: Chơi online**
-- [ ] Chọn backend, thiết kế phòng chơi bằng mã
-- [ ] Học sinh vào phòng bằng thiết bị riêng
-- [ ] Tính điểm ở phía server
+**M2 — Luồng giáo viên (2 ngày)**
+*(Mã đã xong; chờ kiểm chứng đầu-cuối.)*
+- [ ] Đăng nhập email, nhập bộ câu hỏi vào bảng `quiz_sets`/`questions` (bắt đầu bằng tải file CSV/Excel đã có)
+- [ ] Tạo phòng, hiện mã, danh sách học sinh vào phòng theo thời gian thực
 
-**Mốc 5 trở đi**
-- [ ] Tài khoản giáo viên, thư viện bộ câu hỏi, thống kê
+*Nghiệm thu:* mở trang học sinh ở cửa sổ ẩn danh, tên hiện lên máy giáo viên trong vài giây.
+
+**M3 — Luồng học sinh (2 ngày)**
+*(Mã đã xong; chờ kiểm chứng đầu-cuối.)*
+- [ ] Nhập mã + tên, phòng chờ
+- [ ] Màn hình câu hỏi với đồng hồ đếm ngược (đồng bộ giờ server), gửi đáp án, màn "đã gửi"
+
+*Nghiệm thu:* hai học sinh cùng thấy câu hỏi, cùng lúc, đồng hồ lệch nhau không quá khoảng nửa giây.
+
+**M4 — Vòng chơi hoàn chỉnh (2–3 ngày)**
+*(Mã đã xong; chờ kiểm chứng đầu-cuối.)*
+- [ ] Giáo viên: chốt câu, câu tiếp, kết thúc
+- [ ] Học sinh: màn reveal (đúng/sai, điểm), bảng xếp hạng, màn kết thúc
+- [ ] Game đua xe theo interface mục 8
+
+*Nghiệm thu:* chơi trọn 5 câu với 3 thiết bị, điểm hiển thị khớp với tính toán thủ công.
+
+**M5 — Độ bền (2 ngày)**
+*(Một phần: đã có tải lại, tự lấy lại snapshot, vào muộn, trùng tên, lỗi thân thiện; chưa có dọn phòng cũ/giới hạn thao tác lặp.)*
+- [ ] Tải lại trang giữa chừng vẫn quay lại đúng trạng thái
+- [ ] Mất mạng rồi có lại: tự lấy lại snapshot
+- [ ] Vào muộn (phòng đang chơi) và học sinh trùng tên
+- [ ] Dọn phòng cũ, giới hạn thao tác lặp, xử lý lỗi hiển thị thân thiện
+
+**M6 — Thử tải và mở rộng**
+*(Chưa làm.)*
+- [ ] Giả lập 40 học sinh vào phòng và trả lời cùng lúc (script Node dùng publishable key + đăng nhập ẩn danh)
+- [ ] Đối chiếu giới hạn Realtime của gói Supabase đang dùng (xem trang "Realtime rate limits" trong tài liệu Supabase)
+- [ ] Thêm các mini-game còn lại, chế độ theo đội (`players.team`), Presence nếu cần hiện trạng thái online
 
 ---
 
-## 10. Quyết định đã chốt
+## 10. Kiểm thử và bảo mật
+
+**Học sinh KHÔNG được làm (mỗi dòng phải có cách kiểm tra và kết quả "bị chặn"):**
+- [ ] Đọc bảng `questions` (không thấy đáp án đúng)
+- [ ] Thấy `rooms.correct_index` khi phòng đang ở pha `question` (phải là `null`)
+- [ ] Ghi trực tiếp vào `players` (sửa điểm, đổi tên người khác), `rooms`, `answers`
+- [ ] Gọi `host_next_question` / `host_reveal` của phòng không phải của mình
+- [ ] Gửi đáp án hai lần cho cùng một câu, hoặc gửi sau khi hết giờ
+- [ ] Đọc bài làm của học sinh khác trước khi công bố
+- [ ] Thấy phòng của lớp khác, hoặc tự tạo bộ câu hỏi bằng tài khoản ẩn danh
+
+**Kịch bản kiểm thử chức năng**
+- [ ] 1 giáo viên + 3 học sinh (cửa sổ ẩn danh khác nhau), chơi 5 câu, có người không trả lời, có người trả lời sai
+- [ ] Tải lại trang của học sinh giữa lúc đang có câu hỏi
+- [ ] Tắt/bật mạng của học sinh trong lúc chơi
+- [ ] Hai học sinh nhập cùng mã nhưng sai mã, mã đã kết thúc
+
+**Checklist trước khi cho người dùng thật dùng**
+- [ ] Không có secret key trong repo (tìm `sb_secret_` và `service_role`)
+- [ ] RLS bật trên cả 5 bảng
+- [ ] Bật CAPTCHA hoặc giới hạn tần suất cho đăng nhập ẩn danh (tránh bị tạo hàng loạt tài khoản)
+- [ ] Đã ghim phiên bản `@supabase/supabase-js`
+
+---
+
+## 11. Rủi ro và giới hạn đã biết
+
+| Rủi ro | Ảnh hưởng | Cách giảm |
+|---|---|---|
+| Giới hạn kết nối/tin nhắn Realtime của gói miễn phí | Lớp đông có thể bị nghẽn | Đọc trang rate limits của Supabase trước khi thử tải; chuyển sang Broadcast nếu cần |
+| Postgres Changes kiểm tra RLS cho từng người nhận | Chậm hơn khi phòng rất đông | Giữ policy đơn giản; M6 đo thực tế; cân nhắc Broadcast from Database |
+| Lạm dụng đăng nhập ẩn danh | Tạo hàng loạt tài khoản rác | CAPTCHA, giới hạn tần suất, dọn dẹp định kỳ |
+| Mã phòng 6 số có thể bị đoán | Người lạ vào phòng | Phòng chỉ nhận người ở pha chưa kết thúc; có thể thêm giáo viên "khóa phòng" sau |
+| Lệch đồng hồ giữa các máy | Đồng hồ đếm ngược chênh nhau | Dùng `server_now` (mục 7); server là nơi quyết định hết giờ |
+| Mạng yếu trong lớp học | Mất sự kiện realtime | Luôn lấy lại snapshot khi kết nối lại |
+| Học sinh trùng tên | Khó phân biệt trên bảng xếp hạng | Cho phép trùng, hoặc thêm hậu tố số khi hiển thị |
+
+---
+
+## 12. Quyết định đã chốt
 
 | Ngày | Quyết định | Lý do |
 |---|---|---|
-| 2026-11-10 | Dùng HTML/CSS/JS thuần ở Mốc 1 | Nhẹ, dễ học, không cần build |
-| 2026-11-10 | Mỗi game là một module, hướng tới interface chung ở mục 6 | Thêm game mới không phải sửa lõi |
-| 2026-11-10 | Chuẩn hóa bộ câu hỏi theo mục 5 và tự chuyển dữ liệu cũ | Thống nhất dữ liệu trước khi thêm CSV/game mới |
-| 2026-11-10 | Giữ nhập/xuất JSON như tính năng phụ ngoài roadmap (đã bỏ — xem quyết định bên dưới) | Hữu ích để sao lưu/chia sẻ; CSV vẫn thuộc Mốc 2 |
-| 2026-11-10 | Giữ cấu trúc file hiện tại (`src/main.js`, `src/games/...`) | Chưa cần xáo trộn; đổi sang `src/core`, `src/ui` sẽ hỏi riêng |
-| 2026-11-10 | Game dùng `checkWin()` trả về đội thắng hoặc `null`; `onAnswer()` tự vẽ lại | Bám mục 6, bỏ các hàm riêng `render`/`isFinished`/`getWinner` |
-| 2026-11-10 | Đua vịt dùng lại markup đường đua, chỉ thêm lớp `.duck` | Ít mã trùng lặp; vẫn tách module riêng để dễ đổi giao diện sau |
-| 2026-11-10 | CSV nhận cả file có header mục 5 và file không header; dòng lỗi bị bỏ qua, câu hợp lệ vẫn được thêm | Giáo viên dễ dùng với dữ liệu xuất từ Excel; vẫn kiểm tra chặt từng dòng |
-| 2026-11-10 | Ảnh câu hỏi dùng URL; hết giờ tính là trả lời sai; `timeLimit = 0` là không giới hạn | Đúng schema mục 5 (`image` là chuỗi/null), giữ công bằng khi tính điểm và không ép giáo viên tải ảnh lên |
-| 2026-11-10 | Âm thanh tạo bằng Web Audio API trong `src/sound.js`; bật mặc định, tắt/bật được và ghi nhớ ở `hocvui.muted.v1` | Không cần tệp ngoài, không vướng bản quyền, chạy ngoại tuyến; AudioContext chỉ tạo ở lần phát đầu để không bị trình duyệt chặn |
-| 2026-11-10 | Toàn màn hình áp dụng cho khung `.game`, không phải cả trang; overlay thắng nằm trong khung này | Giữ nguyên nút điều khiển và bảng điểm khi chiếu; ẩn nút nếu trình duyệt không hỗ trợ |
-| 2026-11-10 | PWA dùng service worker cache sẵn app shell (phiên bản `hocvui-vN`, hiện là `hocvui-v7`); trang điều hướng ưu tiên mạng rồi mới lấy cache | Chạy được khi mất mạng mà vẫn nhận bản mới khi có mạng; chỉ cache tài nguyên cùng origin |
-| 2026-11-10 | Icon PWA tạo sẵn bằng script Node và lưu trong `assets/icons/` | Không phụ thuộc thư viện/DVD, đủ 192, 512 và bản maskable để cài lên điện thoại |
-| 2026-11-10 | Mở rộng schema với `type: choice / boolean / fill`; dữ liệu cũ tự nhận là `choice`; giữ nguyên `options`/`correctIndex`, thêm `answers` | Tương thích ngược, CSV 6 cột vẫn dùng được; Excel là cách chia sẻ câu đúng/sai và điền từ |
-| 2026-11-10 | Điền từ so khớp sau khi cắt/gộp khoảng trắng, không phân biệt hoa/thường, giữ dấu tiếng Việt | Tránh lỗi gõ thừa khoảng trắng; giáo viên chủ động thêm cách viết không dấu vào `answers` nếu cần |
-| 2026-11-10 | Đổi loại câu trong trình soạn sẽ đặt lại phần đáp án của loại mới, giữ nội dung/ảnh/thời gian | Tránh dữ liệu rác giữa các loại; giáo viên không phải nhập lại toàn bộ |
-| 2026-11-10 | Deploy dạng trang tĩnh, không build; cấu hình `_headers` dùng chung cho Cloudflare Pages và Netlify | Hash router nên không cần rewrite; `_headers` giữ HTML/SW/manifest không cache và thêm header an toàn trên cả hai host |
-| 2026-11-10 | Dữ liệu giáo viên chỉ nằm trong `localStorage` theo tên miền; chuyển host phải xuất/nhập Excel | Chưa có backend; tránh mất bộ câu hỏi khi đổi tên miền hoặc xóa dữ liệu trình duyệt |
-| 2026-11-10 | Excel `.xlsx` tự đọc/ghi bằng `src/xlsx.js` (ZIP + XML, `DecompressionStream('deflate-raw')`, `DOMParser`), không dùng SheetJS/thư viện ngoài | Giữ app tĩnh, nhẹ, chạy ngoại tuyến và không thêm phụ thuộc/bản quyền; đủ nhu cầu nhập/xuất của giáo viên |
-| 2026-11-10 | Chỉ hỗ trợ `.xlsx` hiện đại, không hỗ trợ `.xls` cũ | `.xls` là định dạng nhị phân phức tạp; báo lỗi rõ để giáo viên lưu lại thành `.xlsx` |
-| 2026-11-10 | Excel là định dạng chính để soạn hàng loạt (đủ 3 loại câu, ảnh, thời gian); CSV 6 cột vẫn giữ | Giáo viên quen Excel; CSV vẫn hữu ích cho dữ liệu cũ |
-| 2026-11-10 | Nhập Excel chỉ đọc sheet đầu tiên, thêm câu hợp lệ vào bộ đang soạn và báo lỗi theo số dòng Excel, không tự lưu | Tránh ghi đè ngoài ý muốn; giáo viên xem/sửa rồi mới bấm Lưu |
-| 2026-11-10 | Xuất Excel mỗi bộ một sheet; xuất tất cả tạo workbook nhiều sheet theo thứ tự danh sách | Một tệp sao lưu đầy đủ, mở được bằng Excel/Google Sheets và nhập lại được |
-| 2026-11-10 | Bỏ hoàn toàn nhập/xuất JSON; chỉ dùng Excel `.xlsx` để nhập/xuất tệp | Đơn giản hóa giao diện theo yêu cầu; tránh hai định dạng trùng chức năng |
-| 2026-11-10 | Bỏ đội chơi; giáo viên nhập tên từng học sinh (2–40 bạn) và mỗi bạn trả lời 1 câu | Phù hợp lớp đông và mục tiêu tổng hợp điểm theo từng học sinh; không cần chia đội thủ công |
-| 2026-11-10 | Đường đua đại diện cả lớp (`{ id: 'class', name: 'Cả lớp' }`), tối đa số bước = số học sinh; kéo co là "Cả lớp vs Thử thách" | Một làn không thể hiện 20–40 học sinh; vẫn giữ được cảm giác thi đua và 4 mini-game |
-| 2026-11-10 | Trận kết thúc khi mọi học sinh đã trả lời, không dừng sớm theo `checkWin()` | Đảm bảo mọi bạn đều có điểm; `checkWin()` chỉ còn ý nghĩa khi cả lớp trả lời đúng hết |
-| 2026-11-10 | Lịch sử trận mới lưu `students`; trận cũ đọc `teams` để tương thích ngược | Không làm mất lịch sử đã có trên máy giáo viên |
-| 2026-11-10 | Tạm bỏ mini-game khỏi giao diện; màn **Làm bài** chỉ gồm câu hỏi, lượt, đồng hồ, phản hồi; điểm từng học sinh hiện ở màn kết thúc | Tập trung vào mục tiêu trắc nghiệm và tính điểm từng bạn; giữ mã nguồn `src/games/` để khôi phục sau |
-| 2026-11-10 | Trận mới lưu `gameId: 'quiz'`, `gameName: 'Trắc nghiệm'`; trận cũ vẫn hiện tên mini-game tương ứng | Lịch sử cũ không bị đổi nhãn; trận mới không phụ thuộc registry game |
-| 2026-11-10 | Đổi chữ trên web (footer, tiêu đề tab, manifest, trang chủ) sang nội dung trắc nghiệm; footer chỉ còn “Học Vui” | Theo yêu cầu, tránh gây hiểu nhầm còn mini-game |
+| [YYYY-MM-DD] | Dùng Supabase (Postgres + Auth + Realtime) làm backend | Có sẵn đăng nhập, cơ sở dữ liệu và realtime; không phải tự dựng server |
+| [YYYY-MM-DD] | Học sinh đăng nhập ẩn danh, giáo viên đăng nhập email | Học sinh vào nhanh bằng mã; giáo viên cần lưu bộ câu hỏi |
+| [YYYY-MM-DD] | Server chấm điểm qua hàm RPC; client không ghi trực tiếp | Chống gian lận, đáp án không rời khỏi server trước khi công bố |
+| [YYYY-MM-DD] | Bản đầu dùng Postgres Changes, cân nhắc Broadcast khi mở rộng | Dễ làm, tự áp dụng RLS, đủ cho quy mô một lớp |
+| | | |
+| 2026-11-11 | Ghim `@supabase/supabase-js@2.119.0`, tải động qua jsDelivr ESM | Không cần build; trang vẫn mở được khi ngoại tuyến/chưa cấu hình; tránh SDK tự đổi bản |
+| 2026-11-11 | Dùng luồng PKCE (`?code=`) thay vì implicit | Không xung đột với router dùng hash `#/...` |
+| 2026-11-11 | Chế độ trực tuyến chỉ nhận câu trắc nghiệm 4 đáp án | Khớp ràng buộc `questions.options` trong DB; đúng/sai và điền từ vẫn dùng ở chế độ một máy |
+| 2026-11-11 | Giữ bản LAN cũ nhưng không nối vào giao diện | Không mất mã đã chạy được; có thể quay lại nếu Supabase không phù hợp |
+| 2026-11-11 | Giáo viên tự công bố sau khi hết giờ ~1,2 giây | Tránh kẹt phòng khi giáo viên quên bấm; server vẫn chặn đáp án sau hạn |
 
 ---
 
-## 11. Tài nguyên và bản quyền
+## 13. Trạng thái hiện tại *(cập nhật cuối mỗi phiên)*
 
-- Hình ảnh, âm thanh chỉ dùng nguồn **tự làm** hoặc **miễn phí có giấy phép rõ ràng** (Kenney.nl, OpenGameArt, ...). Ghi nguồn và giấy phép vào bảng dưới.
-- **Không sao chép** code, hình ảnh, âm thanh hay giao diện từ trang tham khảo; chỉ lấy ý tưởng cơ chế chơi.
+**Cập nhật:** 2026-11-11
 
-| Tài nguyên | Nguồn | Giấy phép |
-|---|---|---|
-| [ví dụ: xe đua sprite] | [Kenney.nl] | [CC0] |
-
----
-
-## 12. Trạng thái hiện tại *(cập nhật cuối mỗi phiên)*
-
-**Mốc đang làm:** Mốc 3 đã xong (ảnh + thời gian, âm thanh, toàn màn hình, PWA, dạng câu hỏi mới, nhập/xuất Excel). Đang tạm bỏ mini-game để chạy luồng **làm trắc nghiệm, tính điểm từng học sinh**. Tiếp theo deploy và thử trên điện thoại.
+**Mốc đang làm:** M0 (chờ project Supabase thật) — mã M1–M4 đã viết xong, chưa kiểm chứng đầu-cuối.
 
 **Đã xong:**
-- Khung trang, sidebar, router hash, responsive (desktop / tablet / mobile), icon Lucide ngoại tuyến.
-- Quiz engine: chia lượt theo từng học sinh, mỗi bạn trả lời 1 câu; lượt kết thúc khi mọi bạn đã trả lời.
-- Màn **Làm bài** tạm bỏ chọn mini-game và khung đường đua: chỉ còn câu hỏi, lượt của học sinh, đồng hồ, phản hồi đúng/sai; điểm từng bạn hiện ở bảng kết thúc. Trang chủ, tiêu đề tab, manifest và footer đổi sang nội dung trắc nghiệm (footer chỉ còn “Học Vui”).
-- Lịch sử/Tổng hợp điểm: trận mới gắn nhãn **Trắc nghiệm** (`gameId: 'quiz'`); trận cũ vẫn hiện tên mini-game tương ứng.
-- Giữ nguyên mã nguồn 4 mini-game trong `src/games/` (đua xe, kéo co, đua vịt, nhảy bao bố) nhưng không import vào luồng hiện tại.
-- Trình soạn câu hỏi: tạo/sửa/xóa bộ, lưu localStorage, bộ mẫu.
-- Ảnh minh họa + thời gian cho từng câu: ô nhập URL ảnh (có xem trước), ô thời gian 0–600 giây; màn chơi hiện ảnh, đếm ngược theo `timeLimit`, hết giờ tính là trả lời sai và tự chuyển lượt; `timeLimit = 0` thì không hiện đồng hồ.
-- Âm thanh hiệu ứng (`src/sound.js`): Web Audio tạo tiếng đúng (2 nốt đi lên), sai/hết giờ (1 nốt đi xuống), thắng (4 nốt); bật mặc định, nút tắt/bật ở màn chơi, ghi nhớ lựa chọn.
-- Nút toàn màn hình ở màn chơi: áp dụng cho khung `.game`, đổi icon/chữ khi vào–ra, ẩn nếu trình duyệt không hỗ trợ; overlay thắng nằm trong khung nên vẫn hiện khi chiếu.
-- PWA chạy ngoại tuyến: `manifest.webmanifest` + icon 192/512/maskable, service worker `sw.js` cache sẵn toàn bộ HTML/CSS/JS/icon; đăng ký trong `src/main.js`; trang điều hướng ưu tiên mạng rồi fallback cache; dữ liệu localStorage giữ nguyên khi mất mạng.
-- Ba dạng câu hỏi: `choice` (4 đáp án — như cũ), `boolean` (Đúng/Sai, 2 nút lớn có biểu tượng), `fill` (ô nhập + nút Trả lời, Enter để gửi, 1–5 cách viết). Trình soạn có ô chọn loại; đổi loại đặt lại phần đáp án nhưng giữ nội dung/ảnh/thời gian. Chấm điền từ bỏ khoảng trắng thừa, không phân biệt hoa/thường, giữ dấu tiếng Việt. Dữ liệu cũ tự nhận là `choice`; CSV vẫn chỉ tạo câu 4 đáp án.
-- Chuẩn bị deploy: thêm `_headers` (Cloudflare Pages/Netlify) giữ HTML/manifest/SW không cache và header an toàn; `README.md` hướng dẫn chạy local, deploy, sao lưu Excel và tăng cache SW; `.gitignore`; khởi tạo Git repo local với commit đầu tiên.
-- Đã push mã nguồn lên GitHub: `https://github.com/Henrius73/Webstie-hoc-tap` (nhánh `main`).
-- Nhập/xuất Excel `.xlsx` (`src/xlsx.js`, không dùng thư viện ngoài): đọc/ghi ZIP + XML, hỗ trợ đủ 3 loại câu, ảnh và thời gian; nhận file 10 cột có tiêu đề lẫn file 6 cột cũ (có/không tiêu đề), đọc sheet đầu tiên, báo lỗi theo số dòng Excel. Xuất từng bộ (một sheet) hoặc tất cả (nhiều sheet). Có nút **Nhập Excel**, **Excel** ở từng bộ và **Excel** xuất tất cả; CSV vẫn giữ.
-- Nhập câu hỏi từ CSV (Mốc 2): hỗ trợ BOM, CRLF/LF, tiếng Việt, dấu phẩy/ngoặc kép/nội dung nhiều dòng trong ô; nhận header mục 5 hoặc file không header; báo lỗi từng dòng; thêm câu hợp lệ vào bộ đang soạn, không tự lưu.
-- Chuẩn hóa dữ liệu theo mục 5: `{ id, title, subject, questions: [{ id, type, text, options, correctIndex, answers, image, timeLimit }] }`.
-- Tự chuyển dữ liệu cũ dùng `name`: giữ id bộ cũ, cấp id câu, `type = 'choice'`, `answers = []`, `image = null`, `timeLimit = 0`; bỏ qua bộ hỏng thay vì làm sập app.
-- Đã bỏ nhập/xuất JSON: xóa nút Nhập JSON, nút Xuất JSON và code `parseSetsJson`/`buildExportData`; Excel là định dạng nhập/xuất tệp duy nhất.
-- Chuẩn hóa interface game theo mục 6: thêm registry `src/games/index.js`; mỗi game export `{ id, name, icon, init(container, players, options), onAnswer(playerId, isCorrect), checkWin(), destroy() }`; `checkWin()` trả về người chơi khi về đích hoặc `null`.
-- Trang thiết lập nhập tên học sinh: ô nhập + nút **Thêm** (Enter cũng thêm), chip tên kèm nút xóa, tối đa 40 bạn, không trùng tên, cần ít nhất 2 bạn để bắt đầu.
-- Màn kết thúc hiện bảng tổng hợp điểm từng học sinh (hạng, đúng/tổng, tỉ lệ) và lưu vào lịch sử; trang Tổng hợp điểm xếp hạng theo học sinh, đọc được cả lịch sử `students` mới và `teams` cũ.
-- Kiểm thử tự động qua CDP: thêm/xóa/trùng tên, chặn dưới 2 bạn, làm trọn một lượt trắc nghiệm (không chọn game), bảng điểm cuối trận, lịch sử mới và cũ, xếp hạng học sinh, responsive 390px, overlay cuộn được với lớp 40 bạn, PWA ngoại tuyến với cache `hocvui-v7`; không có lỗi Console.
+- Migration `supabase/migrations/0001_multiplayer.sql`: 5 bảng (`quiz_sets`, `questions`, `rooms`, `players`, `answers`), đủ RPC (`server_now`, `create_room`, `join_room`, `host_next_question`, `submit_answer`, `host_reveal`), bật RLS cho cả 5 bảng, thu hồi quyền ghi trực tiếp, cấp EXECUTE cho `authenticated`, thêm `rooms` + `players` vào publication Realtime (bỏ qua an toàn nếu chưa có publication).
+- `src/config.js` (placeholder) + `src/lib/supabase.js`: tải động `@supabase/supabase-js@2.119.0` (ghim phiên bản), PKCE, đăng nhập ẩn danh cho học sinh, magic link cho giáo viên, `ensureTeacher`, `signOut`, `onAuthChange`; chưa cấu hình thì app vẫn chạy.
+- `src/net/api.js`: toàn bộ gọi RPC, liệt kê/đăng/xóa bộ câu hỏi, `fetchRoomByCode`, `fetchSnapshot`, `fetchAnswerStats` (dùng cho giáo viên), `subscribeRoom` (Postgres Changes, tự lấy lại snapshot sau khi nối lại), `friendlyError`.
+- `src/net/clock.js`: đồng bộ giờ server, tính thời gian còn lại, đồng bộ định kỳ.
+- `src/ui/liveHub.js`: đăng nhập giáo viên bằng email, danh sách bộ câu hỏi trên Supabase, đăng bộ đang lưu trên máy, tạo phòng, form học sinh vào bằng mã + tên.
+- `src/ui/host/hostViews.js`: lobby realtime, chuyển câu, công bố đáp án (tự công bố sau khi hết giờ ~1,2 giây), thống kê số người trả lời theo từng đáp án, bảng xếp hạng, màn kết thúc.
+- `src/ui/player/playerViews.js`: đăng nhập ẩn danh, vào phòng, lobby, câu hỏi + đồng hồ, gửi đáp án, màn chờ/công bố/kết thúc, vào lại sau khi tải lại trang.
+- `src/games/raceLive.js`: mini-game đua xe cho chế độ trực tuyến (top 8 + "em").
+- `styles.css`: thêm phần giao diện Supabase, dùng lại các lớp `.live`, `.student-live`, `.live-hub`.
+- `sw.js`: cache `hocvui-v9`, thêm các module mới; `index.html` + `src/main.js` đã nối giao diện mới.
+- Giữ nguyên `server/rooms.js`, `src/live.js`, `src/liveViews.js` (bản LAN cũ) nhưng không còn nối vào router.
+- Đã chạy `node --input-type=module --check` cho toàn bộ module mới và kiểm tra DOM bằng Edge headless ở `/`, `/play`, `/room/123456`, `/host/123456` với cấu hình placeholder và cấu hình giả.
 
 **Đang dở:**
-- Chưa deploy thật lên hosting.
-- Chưa thử trên điện thoại thật.
+- Chưa có project Supabase thật nên chưa kiểm chứng: đăng nhập email, RLS, RPC, Realtime, đồng bộ đồng hồ, tải lại/ngắt mạng, tải 40 học sinh.
+- Chưa chạy migration trên Postgres thật; mới kiểm tra cú pháp bằng cách đọc file.
 
 **Việc tiếp theo (tối đa 3 việc):**
-1. Kết nối Vercel (hoặc Cloudflare Pages/Netlify) với repo GitHub và deploy.
-2. Thử trên điện thoại thật: cài PWA, chơi ngoại tuyến.
-3. Rà soát giao diện desktop/mobile sau khi có bản chạy thật.
+1. Tạo project Supabase, bật Anonymous sign-ins, chạy migration, điền `src/config.js`, thêm Redirect URL.
+2. Chạy checklist mục 10 với 1 giáo viên + 3 học sinh; ghi lại từng mục bị chặn/không bị chặn.
+3. Sửa lỗi phát hiện được, rồi làm M5 (dọn phòng cũ, giới hạn thao tác lặp) và M6 (thử tải 40 học sinh).
 
 **Lỗi/vấn đề đã biết:**
-- Chưa deploy thật lên hosting và chưa thử trên điện thoại thật.
-- Excel chỉ hỗ trợ `.xlsx` hiện đại; file `.xls` cũ phải lưu lại thành `.xlsx` trước khi nhập.
-- Không còn JSON để sao lưu toàn bộ. Xuất Excel tất cả tạo nhiều sheet, nhưng nhập Excel chỉ đọc sheet đầu tiên; muốn khôi phục nhiều bộ phải nhập từng sheet vào từng bộ mới.
-- Ảnh câu hỏi dùng URL ngoài nên vẫn cần mạng để tải ảnh (khung app và câu hỏi chữ chạy ngoại tuyến).
-- Lịch sử trận vẫn dùng khóa `setName` để tương thích dữ liệu cũ.
+- Chế độ trực tuyến chỉ nhận câu trắc nghiệm đủ 4 đáp án; đúng/sai và điền từ bị bỏ qua khi đăng bộ (có thông báo).
+- `submit_answer` cho phép trễ tối đa 1 giây so với `question_ends_at` để bù độ trễ mạng; điểm đã tính theo thời điểm server nhận.
+- `fetchAnswerStats` đọc toàn bộ `answers` của phòng ở mỗi nhịp polling; với lớp rất đông nên chuyển sang đếm phía server hoặc Broadcast.
+- Chưa có CAPTCHA/giới hạn tần suất cho đăng nhập ẩn danh (rủi ro tạo tài khoản rác).
+- Chưa có nút "khóa phòng"/xóa phòng cũ; mã phòng 6 số vẫn có thể bị đoán.
 
 **Ghi chú cho phiên sau:**
-- Cấu trúc file hiện tại được giữ nguyên; đổi sang `src/core`, `src/ui`, tên file kebab-case cần hỏi riêng.
-- Excel là định dạng nhập/xuất tệp duy nhất; CSV vẫn thuộc Mốc 2.
-- Thêm game mới: tạo module export object theo mục 6 rồi khai báo trong `src/games/index.js`; trang thiết lập tự sinh danh sách game.
-- Ảnh câu hỏi là URL (không tải tệp lên); đồng hồ dùng mốc thời gian tuyệt đối nên không lệch sau khi tab bị treo, dừng khi đã trả lời hoặc rời trang.
-- Âm thanh nằm ở `src/sound.js`; muốn thêm hiệu ứng mới thì thêm hàm `play...` rồi gọi ở `src/main.js`. Toàn màn hình gắn với `.game` và có dọn listener khi rời trang.
-- PWA: sửa danh sách file trong `sw.js` hoặc muốn buộc tải bản mới thì tăng `CACHE` (hiện `hocvui-v7`). Chỉ tài nguyên cùng origin được cache; ảnh câu hỏi dùng URL ngoài vẫn cần mạng.
-- Deploy: chạy local bằng `node serve.js` → `http://localhost:8000`. `_headers` chỉ có tác dụng trên Cloudflare Pages/Netlify, server local bỏ qua. Trước khi đổi tên miền phải xuất Excel vì dữ liệu nằm trong `localStorage` theo từng origin.
-- Excel: logic đọc/ghi nằm ở `src/xlsx.js`; `src/main.js` chỉ nối nút và xử lý báo cáo. Đọc sheet đầu tiên; tiêu đề cột nhận không dấu/khác hoa thường; file 6 cột cũ tự nhận là `choice`. Muốn đổi cột/định dạng phải sửa `COLUMNS`, `headerMap` và `sheetXml`. Không thêm thư viện ZIP/Excel nếu chưa hỏi.
-- Dạng câu hỏi: `src/store.js` chuẩn hóa cả 3 loại và có `blankQuestion(type)`; `src/quizEngine.js` chấm số thứ tự (choice/boolean) hoặc chuỗi (`fill`). Muốn thêm loại mới: mở rộng `QUESTION_TYPES`, phần render trong `src/main.js` và `normalizeQuestion`.
-- Đã kiểm thử bằng CDP: chuẩn hóa dữ liệu, interface game (registry + vòng đời init/onAnswer/checkWin/destroy), đua xe, kéo co, đua vịt, nhảy bao bố (giao diện, trọn ván, hiệu ứng nhảy, chơi lại, mobile), nhập CSV (BOM/CRLF/ngoặc kép/nội dung nhiều dòng/dòng lỗi/headerless/lưu bộ), ảnh + thời gian (lưu/load, xem trước, đếm ngược, hết giờ tính sai, dừng đồng hồ khi trả lời, `timeLimit = 0`, mobile), âm thanh + toàn màn hình (đúng/sai/thắng phát đúng số nốt, tắt tiếng chặn âm và ghi nhớ, vào/ra toàn màn hình đúng khung chơi, mobile ẩn chữ giữ nút), PWA (manifest + icon 192/512/maskable, service worker activated, cache đủ app shell, chơi game và mở trình soạn khi ngắt mạng hoàn toàn, dữ liệu localStorage còn nguyên), ba dạng câu hỏi (soạn/lưu/mở lại, migration dữ liệu cũ, chấm đúng/sai, điền từ khớp biến thể và sai, Enter, hết giờ, đổi loại giữ nội dung, mobile), Excel (đọc file thật do Microsoft Excel tạo có sharedStrings/tiếng Việt, đủ 3 loại câu, báo lỗi đúng số dòng, file 6 cột cũ, tệp hỏng, xuất rồi nhập lại, nhập trên giao diện, xuất từng bộ và tất cả, mở file xuất bằng Excel không báo sửa, mobile 390px), tổng hợp điểm, sidebar/responsive — không lỗi Console. Đã kiểm tra giao diện không còn nút Nhập/Xuất JSON.
-- Kiểm tra chuẩn bị deploy: không có đường dẫn tuyệt đối; 24 tài nguyên (HTML/CSS/JS/manifest/SW/icon) trả 200 qua `node serve.js`; chạy lại PWA offline — pass.
+- `src/config.js` phải giữ placeholder khi commit; không dán secret key.
+- Đọc `README.md` mục "Phòng chơi trực tuyến (Supabase)" để biết các bước cấu hình và bảng kiểm tra bảo mật.
+- Không xóa bản LAN cũ; nếu cần dùng lại, nối router vào `src/liveViews.js` và chạy `node server/rooms.js`.
 
----
-
-## 13. Định nghĩa "xong" cho mỗi tính năng
-
-Một tính năng chỉ được coi là xong khi:
-- [ ] Đạt đúng tiêu chí nghiệm thu đã viết trong spec
-- [ ] Tôi đã tự chạy thử trên trình duyệt (và điện thoại nếu liên quan giao diện)
-- [ ] Không có lỗi đỏ trong Console
-- [ ] Không làm hỏng tính năng cũ
-- [ ] Đã commit với thông điệp rõ ràng
-- [ ] Đã cập nhật mục 12 của file này
 
 ---
 
 ## 14. Mẫu prompt nhanh
 
 **Mở phiên**
-> Đây là PROJECT.md: [dán]. Hôm nay làm: [việc]. Tiêu chí xong: [...]. Hãy đề xuất kế hoạch các bước và file cần sửa, chưa viết code.
+> Đây là PROJECT.md: [dán]. Hôm nay làm: [việc, ví dụ: M2 — tạo phòng và danh sách người chơi realtime]. Tiêu chí xong: [...]. Đề xuất kế hoạch các bước và file cần sửa, chưa viết code.
 
-**Giao việc**
-> Làm bước [n] của kế hoạch. Chỉ sửa [file]. Giữ nguyên interface ở mục 6.
+**Giao việc có liên quan quyền truy cập**
+> Làm bước [n]. Mọi thao tác ghi đi qua RPC ở mục 6, không `insert/update` trực tiếp từ client. Khi xong, liệt kê những gì học sinh KHÔNG được làm và cách tôi kiểm tra từng điều.
 
-**Báo lỗi**
-> Lỗi: [dán nguyên văn Console]. Tôi đã làm: [thao tác]. Mong đợi: [...]. Thực tế: [...]. Giải thích nguyên nhân trước rồi mới sửa.
+**Sửa lỗi Supabase**
+> Lỗi: [dán nguyên văn từ Console hoặc tab Network, che mọi khóa]. Tôi đã làm: [thao tác]. Mong đợi: [...]. Giải thích nguyên nhân trước rồi mới sửa. Không tắt RLS.
+
+**Thêm thay đổi DB**
+> Cần [thay đổi]. Viết thành migration `supabase/migrations/000N_...sql`, nói rõ ảnh hưởng đến policy/RPC hiện có, và đề xuất cách kiểm thử.
 
 **Đóng phiên**
-> Tóm tắt đã làm gì, còn dở gì, rủi ro gì, và viết sẵn nội dung để tôi dán vào mục 12.
+> Tóm tắt đã làm gì, còn dở gì, rủi ro gì, và viết sẵn nội dung để tôi dán vào mục 13.

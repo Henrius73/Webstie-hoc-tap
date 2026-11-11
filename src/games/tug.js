@@ -9,10 +9,12 @@ let gameState = null;
 
 // Dựng giao diện game vào container, nhận danh sách người chơi (cả lớp)
 function init(container, players, ctx = {}) {
-  const goal = Math.max(1, Number(ctx.totalTurns) || STEPS);
+  // Chế độ cùng lớp truyền goal riêng để dây chỉ về đích khi hết trận
+  const goal = Math.max(1, Number(ctx.goal) || Number(ctx.totalTurns) || STEPS);
   const classSide = players[0] || { id: 'class', name: 'Cả lớp', color: '#7c3aed' };
   gameState = {
     root: container,
+    players: [],
     sides: [
       { ...classSide },
       { id: 'challenge', name: 'Thử thách', color: '#64748b' },
@@ -46,6 +48,26 @@ function init(container, players, ctx = {}) {
         ${sideBox(gameState.sides[1], 'right')}
       </div>
     </div>`;
+
+  sync(players);
+}
+
+// Thế trận = tổng câu đúng của lớp trừ tổng câu sai
+function sync(players = []) {
+  if (!gameState) return;
+  gameState.players = players.map(p => ({ ...p }));
+
+  let correct = 0;
+  let wrong = 0;
+  for (const p of players) {
+    correct += Number(p.score) || 0;
+    wrong += Number(p.wrong) || 0;
+  }
+
+  gameState.position = Math.max(-gameState.goal, Math.min(gameState.goal, correct - wrong));
+  if (gameState.position >= gameState.goal) gameState.winner = gameState.sides[0];
+  else if (gameState.position <= -gameState.goal) gameState.winner = gameState.sides[1];
+  else gameState.winner = null;
 
   render();
 }
@@ -119,6 +141,7 @@ export default {
   icon: 'move-horizontal',
   description: 'Cả lớp cùng kéo dây về đích; mỗi câu sai bị thử thách kéo lại.',
   init,
+  sync,
   onAnswer,
   checkWin,
   destroy,

@@ -1,10 +1,20 @@
 // Trang giáo viên: đăng nhập email (magic link) + quản lý bộ câu hỏi và phòng đang mở.
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { GraduationCap, MailCheck, Pencil, Plus, Rocket, Trash2, Undo2 } from 'lucide-react'
+import { BookOpen, GraduationCap, LogOut, MailCheck, Pencil, Plus, Presentation, Rocket, Trash2, Undo2 } from 'lucide-react'
 import { createRoom, fetchActiveRooms, type ActiveRoom } from '../api/rooms'
 import { createQuizSet, deleteQuizSet, listQuizzes, type QuizSummary } from '../api/quizzes'
-import { Btn, ErrorCard, PageShell, Spinner, btnClasses } from '../components/ui'
+import {
+  Btn,
+  EmptyState,
+  ErrorCard,
+  PageShell,
+  Spinner,
+  btnClasses,
+  cardClasses,
+  fieldClasses,
+  sectionLabelClasses,
+} from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { friendlyError } from '../lib/errors'
 import { isConfigured } from '../lib/supabase'
@@ -91,10 +101,7 @@ function TeacherLogin({
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-6 shadow-xl"
-        >
+        <form onSubmit={handleSubmit} className={`${cardClasses} space-y-4 p-6 shadow-xl`}>
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-slate-300">Email</span>
             <input
@@ -104,7 +111,7 @@ function TeacherLogin({
               autoComplete="email"
               placeholder="giaoVien@truong.edu.vn"
               disabled={busy || sent}
-              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 outline-none focus:border-indigo-400 disabled:opacity-50"
+              className={`${fieldClasses} py-3`}
             />
           </label>
 
@@ -240,12 +247,17 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
 
   return (
     <PageShell>
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 fade-in">
+      <header className={`${cardClasses} mb-8 flex flex-wrap items-center justify-between gap-4 p-5 fade-in`}>
         <div>
+          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-indigo-300 uppercase">
+            <Presentation className="h-4 w-4" />
+            Khu vực giáo viên
+          </p>
           <h1 className="text-2xl font-black sm:text-3xl">Bộ câu hỏi của thầy/cô</h1>
           <p className="text-sm text-slate-400">{email}</p>
         </div>
         <Btn variant="ghost" onClick={onSignOut}>
+          <LogOut className="h-4 w-4" />
           Đăng xuất
         </Btn>
       </header>
@@ -256,15 +268,18 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
         </div>
       ) : null}
 
-      <form onSubmit={handleCreate} className="mb-8 flex flex-col gap-3 sm:flex-row">
-        <input
-          value={newTitle}
-          onChange={e => setNewTitle(e.target.value)}
-          maxLength={120}
-          placeholder="Tên bộ câu hỏi mới (ví dụ: Toán lớp 5 — phép cộng)"
-          disabled={creating}
-          className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 outline-none focus:border-indigo-400 disabled:opacity-50"
-        />
+      <form onSubmit={handleCreate} className={`${cardClasses} mb-8 flex flex-col gap-3 p-4 sm:flex-row`}>
+        <label className="flex-1">
+          <span className="sr-only">Tên bộ câu hỏi mới</span>
+          <input
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            maxLength={120}
+            placeholder="Tên bộ câu hỏi mới (ví dụ: Toán lớp 5 — phép cộng)"
+            disabled={creating}
+            className={`${fieldClasses} py-3`}
+          />
+        </label>
         <Btn type="submit" disabled={creating}>
           <Plus className="h-4 w-4" />
           {creating ? 'Đang tạo...' : 'Tạo bộ mới'}
@@ -273,7 +288,7 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
 
       {activeRooms.length > 0 ? (
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold tracking-widest text-slate-400 uppercase">
+          <h2 className={`${sectionLabelClasses} mb-3`}>
             Phòng đang mở
           </h2>
           <ul className="space-y-3">
@@ -305,48 +320,53 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
         </section>
       ) : null}
 
-      {quizzes === null ? (
-        <Spinner label="Đang tải danh sách..." />
-      ) : quizzes.length === 0 ? (
-        <p className="rounded-2xl border border-slate-700/60 bg-slate-800/60 px-6 py-10 text-center text-slate-400">
-          Chưa có bộ câu hỏi nào. Tạo bộ mới phía trên, soạn câu hỏi rồi mở phòng cho cả lớp!
-        </p>
-      ) : (
-        <ul className="space-y-3">
-          {quizzes.map(quiz => (
-            <li
-              key={quiz.id}
-              className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{quiz.title}</p>
-                <p className="text-xs text-slate-400">
-                  {quiz.count} câu hỏi · tạo ngày {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link to={`/host/quiz/${quiz.id}`} className={btnClasses('ghost')}>
-                  <Pencil className="h-4 w-4" />
-                  Sửa
-                </Link>
-                <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
-                  {busyId === quiz.id ? (
-                    'Đang mở...'
-                  ) : (
-                    <>
-                      <Rocket className="h-4 w-4" />
-                      Tạo phòng
-                    </>
-                  )}
-                </Btn>
-                <Btn variant="danger" disabled={busyId === quiz.id} onClick={() => void handleDelete(quiz)}>
-                  <Trash2 className="h-4 w-4" />
-                </Btn>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section>
+        <h2 className={`${sectionLabelClasses} mb-3`}>Bộ câu hỏi đã tạo</h2>
+        {quizzes === null ? (
+          <Spinner label="Đang tải danh sách..." />
+        ) : quizzes.length === 0 ? (
+          <EmptyState
+            icon={BookOpen}
+            title="Chưa có bộ câu hỏi nào"
+            description="Tạo bộ mới ở phía trên, soạn câu hỏi (hoặc nhập từ Excel) rồi mở phòng cho cả lớp."
+          />
+        ) : (
+          <ul className="space-y-3">
+            {quizzes.map(quiz => (
+              <li
+                key={quiz.id}
+                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-400/40 hover:bg-slate-800`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">{quiz.title}</p>
+                  <p className="text-xs text-slate-400">
+                    {quiz.count} câu hỏi · tạo ngày {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link to={`/host/quiz/${quiz.id}`} className={btnClasses('ghost')}>
+                    <Pencil className="h-4 w-4" />
+                    Sửa
+                  </Link>
+                  <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
+                    {busyId === quiz.id ? (
+                      'Đang mở...'
+                    ) : (
+                      <>
+                        <Rocket className="h-4 w-4" />
+                        Tạo phòng
+                      </>
+                    )}
+                  </Btn>
+                  <Btn variant="danger" disabled={busyId === quiz.id} onClick={() => void handleDelete(quiz)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Btn>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </PageShell>
   )
 }

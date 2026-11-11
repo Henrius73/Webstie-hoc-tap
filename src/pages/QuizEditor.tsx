@@ -1,13 +1,35 @@
-// Trình soạn bộ câu hỏi: thêm/sửa/xóa/sắp xếp câu, nhập từ CSV/Excel, lưu, mở phòng.
-// (Form soạn câu và khối nhập CSV nằm ở components/QuestionForm.tsx và CsvImportSection.tsx.)
+// Trình soạn bộ câu hỏi: thêm/sửa/xóa/sắp xếp câu, nhập từ Excel, lưu, mở phòng.
+// (Form soạn câu và khối nhập Excel nằm ở components/QuestionForm.tsx và ExcelImportSection.tsx.)
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { ArrowDown, ArrowLeft, ArrowUp, Check, Clock, Pencil, Plus, Rocket, Save, Trash2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Check,
+  Clock,
+  FileSpreadsheet,
+  Pencil,
+  Plus,
+  Rocket,
+  Save,
+  Trash2,
+} from 'lucide-react'
 import { createRoom } from '../api/rooms'
 import { fetchQuiz, updateQuizSet } from '../api/quizzes'
-import { CsvImportSection } from '../components/CsvImportSection'
+import { ExcelImportSection } from '../components/ExcelImportSection'
 import { QuestionForm } from '../components/QuestionForm'
-import { Btn, ErrorCard, LETTERS, PageShell, Spinner, btnClasses } from '../components/ui'
+import {
+  Btn,
+  EmptyState,
+  ErrorCard,
+  LETTERS,
+  PageShell,
+  Spinner,
+  btnClasses,
+  cardClasses,
+  fieldClasses,
+} from '../components/ui'
 import { friendlyError } from '../lib/errors'
 import type { QuestionInput } from '../types/db'
 
@@ -25,6 +47,7 @@ export default function QuizEditor() {
   const [notice, setNotice] = useState<string | null>(null)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   // Cảnh báo khi rời trang (F5/đóng tab) trong khi còn thay đổi chưa lưu.
   useEffect(() => {
@@ -160,7 +183,7 @@ export default function QuizEditor() {
         <h1 className="truncate text-2xl font-black">Soạn bộ câu hỏi</h1>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+      <div className={`${cardClasses} mb-6 p-4`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
             value={title}
@@ -170,7 +193,7 @@ export default function QuizEditor() {
             }}
             maxLength={120}
             placeholder="Tên bộ câu hỏi"
-            className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 font-bold outline-none focus:border-indigo-400"
+            className={`${fieldClasses} flex-1 font-bold`}
           />
           <div className="flex flex-wrap gap-2">
             <Btn onClick={() => void handleSave()} disabled={saving || !drafts.length}>
@@ -207,23 +230,34 @@ export default function QuizEditor() {
         </section>
       ) : (
         <div className="mb-6">
-          <Btn onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4" />
-            Thêm câu hỏi
-          </Btn>
-          <CsvImportSection
-            onAdd={questions => {
-              touch([...drafts, ...questions])
-              setNotice(`Đã thêm ${questions.length} câu từ CSV.`)
-            }}
-          />
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => setAdding(true)}>
+              <Plus className="h-4 w-4" />
+              Thêm câu hỏi
+            </Btn>
+            <Btn variant="ghost" onClick={() => setImportOpen(open => !open)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              Nhập từ Excel
+            </Btn>
+          </div>
+          {importOpen ? (
+            <ExcelImportSection
+              onClose={() => setImportOpen(false)}
+              onAdd={questions => {
+                touch([...drafts, ...questions])
+                setNotice(`Đã thêm ${questions.length} câu từ Excel.`)
+              }}
+            />
+          ) : null}
         </div>
       )}
 
       {drafts.length === 0 ? (
-        <p className="rounded-2xl border border-slate-700/60 bg-slate-800/60 px-6 py-10 text-center text-slate-400">
-          Chưa có câu hỏi. Bấm "Thêm câu hỏi" để bắt đầu soạn.
-        </p>
+        <EmptyState
+          icon={FileSpreadsheet}
+          title="Chưa có câu hỏi nào"
+          description="Bấm “Thêm câu hỏi” để soạn từng câu, hoặc nhập nhanh cả bộ từ tệp Excel."
+        />
       ) : (
         <ol className="space-y-4">
           {drafts.map((question, index) =>
@@ -237,7 +271,7 @@ export default function QuizEditor() {
                 />
               </li>
             ) : (
-              <li key={index} className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+              <li key={index} className={`${cardClasses} p-4`}>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
                     Câu {index + 1}

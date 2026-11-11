@@ -11,7 +11,8 @@ deploy trên **Vercel**.
 **Giáo viên**
 - Đăng nhập bằng email (magic link, không cần mật khẩu).
 - Soạn bộ câu hỏi ngay trong app: nội dung, 4 đáp án, chọn đáp án đúng, thời gian 5–300 giây, ảnh (URL), sắp xếp thứ tự.
-- **Nhập nhanh đề từ CSV/Excel**: dán bảng hoặc chọn tệp .csv (`câu hỏi, A, B, C, D, đáp án đúng, thời gian`).
+- **Nhập nhanh đề từ Excel**: kéo–thả hoặc chọn tệp `.xlsx`/`.xls`, tự nhận dòng tiêu đề, báo lỗi theo số dòng
+  Excel, kèm nút **tải tệp mẫu** (2 trang: Câu hỏi + Hướng dẫn). Cột: câu hỏi, A, B, C, D, đáp án đúng, thời gian, ảnh (URL).
 - Tạo phòng chơi — nhận mã 6 chữ số + liên kết để chiếu lên bảng.
 - **Danh sách phòng đang mở** ngay tại trang chủ giáo viên (mã phòng, bộ đề, số học sinh, pha hiện tại) — lỡ tắt tab hay quay lại vẫn vào lại được.
 - Điều khiển ván chơi: bắt đầu, xem thống kê trả lời theo thời gian thực (kèm chip ✓ ai đã trả lời), công bố sớm hoặc tự động, sang câu tiếp, kết thúc.
@@ -40,7 +41,7 @@ deploy trên **Vercel**.
 - Giới hạn: chỉ chơi được trên máy đã tạo phòng. Muốn chơi giữa nhiều máy vẫn cần cấu hình Supabase.
 
 **Luyện tập (tự học — chạy hoàn toàn trên trình duyệt, không cần mạng/Supabase)**
-- Tự soạn bộ câu hỏi lưu trong `localStorage` (tự động lưu sau mỗi thay đổi), nhập nhanh từ CSV/Excel,
+- Tự soạn bộ câu hỏi lưu trong `localStorage` (tự động lưu sau mỗi thay đổi), nhập nhanh từ tệp Excel,
   nhân bản/xóa bộ, kèm bộ câu hỏi mẫu để dùng thử ngay.
 - Làm bài kiểu trang trắc nghiệm thông thường: **chấm ngay sau mỗi câu** hoặc **chấm cuối bài (kiểu đề thi)**,
   chọn số câu, xáo trộn câu/đáp án, giới hạn thời gian mỗi câu, phím tắt 1–4 và Enter.
@@ -56,6 +57,9 @@ giảm dần còn **500 điểm khi hết giờ**; sai hoặc không trả lời
 - **Node.js ≥ 20.19** (khuyến nghị 22 LTS) và npm.
 - Một project [Supabase](https://supabase.com) (miễn phí là đủ).
 - Tài khoản [Vercel](https://vercel.com) nếu muốn deploy.
+
+> Thư viện đọc Excel là [`xlsx` 0.20.3](https://sheetjs.com) cài trực tiếp từ CDN chính thức của SheetJS
+> (khai báo trong `package.json`), nên `npm install` cần truy cập được `cdn.sheetjs.com`.
 
 ## ⚠️ Quan trọng: thư mục dự án KHÔNG được chứa ký tự `#`
 
@@ -149,11 +153,11 @@ SELECT trong `fetchSnapshot`/`fetchAnswerStats` cho pha chưa công bố.
 ```
 src/
   api/        # quizzes.ts, rooms.ts, realtime.ts — lớp gọi Supabase
-  components/ # ui.tsx (khối giao diện chung), AnswerPad.tsx, QuestionForm.tsx, CsvImportSection.tsx
+  components/ # ui.tsx (khối giao diện chung), AnswerPad.tsx, QuestionForm.tsx, ExcelImportSection.tsx
   hooks/      # useRoom.ts (snapshot + realtime), useDemoRoom.ts (phòng thử),
                # useCountdown.ts (đồng hồ server)
   lib/        # supabase.ts (client), auth.tsx (giáo viên/học sinh), errors.ts, utils.ts,
-               # csv.ts (đọc đề CSV/Excel), sound.ts (âm thanh Web Audio),
+               # excel.ts (đọc đề Excel + tạo tệp mẫu), sound.ts (âm thanh Web Audio),
                # practiceStore.ts (luyện tập cục bộ), demoRoom.ts (phòng thử localStorage)
   pages/      # Home, Join, StudentRoom, HostPage, QuizEditor, HostRoom,
                # DemoHost, DemoHostRoom, DemoStudentRoom (chế độ chơi thử),

@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router'
 import {
   Check,
   CircleAlert,
+  GraduationCap,
   Home as HomeIcon,
   Medal,
   PartyPopper,
@@ -19,18 +20,33 @@ import type { PlayerRow } from '../types/db'
 
 export const LETTERS = ['A', 'B', 'C', 'D']
 
+// Lớp dùng chung để các trang có cùng nhịp điệu thị giác.
+export const cardClasses = 'rounded-2xl border border-slate-700/60 bg-slate-800/70 shadow-sm'
+export const fieldClasses =
+  'w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/25 disabled:opacity-50'
+export const sectionLabelClasses = 'text-xs font-semibold tracking-widest text-slate-400 uppercase'
+
 export function PageShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const isHome = location.pathname === '/'
 
   return (
     <div className="min-h-dvh bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 text-slate-100">
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
         {isHome ? null : (
-          <nav className="mb-6">
+          <nav className="mb-8 flex items-center justify-between gap-3">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700"
+              className="inline-flex items-center gap-2 text-sm font-black tracking-tight text-slate-200 transition hover:text-white"
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-xl border border-indigo-400/30 bg-indigo-500/15 text-indigo-300">
+                <GraduationCap className="h-4 w-4" />
+              </span>
+              Học Vui
+            </Link>
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-700"
             >
               <HomeIcon className="h-3.5 w-3.5" />
               Trang chủ
@@ -59,8 +75,9 @@ const SIZE_STYLES: Record<Size, string> = {
 
 export function btnClasses(variant: Variant = 'primary', size: Size = 'md'): string {
   return cx(
-    'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition',
-    'disabled:cursor-not-allowed disabled:opacity-50',
+    'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl font-semibold transition',
+    'focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
+    'active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0',
     VARIANT_STYLES[variant],
     SIZE_STYLES[size],
   )
@@ -104,6 +121,29 @@ export function ErrorCard({
         </Btn>
       ) : null}
     </section>
+  )
+}
+
+export function EmptyState({
+  icon: Icon = Sparkles,
+  title,
+  description,
+  children,
+}: {
+  icon?: LucideIcon
+  title: string
+  description?: string
+  children?: ReactNode
+}) {
+  return (
+    <div className={cx(cardClasses, 'px-6 py-10 text-center fade-in')}>
+      <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-slate-900/70 text-indigo-300">
+        <Icon className="h-6 w-6" />
+      </span>
+      <p className="font-bold text-slate-100">{title}</p>
+      {description ? <p className="mx-auto mt-1 max-w-md text-sm text-slate-400">{description}</p> : null}
+      {children ? <div className="mt-4 flex flex-wrap justify-center gap-2">{children}</div> : null}
+    </div>
   )
 }
 

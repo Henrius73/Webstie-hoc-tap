@@ -2,10 +2,21 @@
 // (không cần nút "Lưu" như bản Supabase của giáo viên).
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { ArrowDown, ArrowLeft, ArrowUp, Check, Clock, Pencil, Play, Plus, Trash2 } from 'lucide-react'
-import { CsvImportSection } from '../components/CsvImportSection'
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  Check,
+  Clock,
+  FileSpreadsheet,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+} from 'lucide-react'
+import { ExcelImportSection } from '../components/ExcelImportSection'
 import { QuestionForm } from '../components/QuestionForm'
-import { Btn, ErrorCard, LETTERS, PageShell, btnClasses } from '../components/ui'
+import { Btn, EmptyState, ErrorCard, LETTERS, PageShell, btnClasses, cardClasses, fieldClasses } from '../components/ui'
 import { getSet, updateSet } from '../lib/practiceStore'
 import type { QuestionInput } from '../types/db'
 
@@ -19,6 +30,7 @@ export default function PracticeEditor() {
   const [questions, setQuestions] = useState<QuestionInput[]>(() => initial?.questions ?? [])
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   if (missing) {
     return (
@@ -77,14 +89,14 @@ export default function PracticeEditor() {
         <h1 className="truncate text-2xl font-black">Soạn bộ luyện tập</h1>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+      <div className={`${cardClasses} mb-6 p-4`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
             value={title}
             onChange={e => save(e.target.value, questions)}
             maxLength={120}
             placeholder="Tên bộ luyện tập"
-            className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 font-bold outline-none focus:border-indigo-400"
+            className={`${fieldClasses} flex-1 font-bold`}
           />
           <Btn
             onClick={() => navigate(`/practice/run/${id}`)}
@@ -107,18 +119,31 @@ export default function PracticeEditor() {
         </section>
       ) : (
         <div className="mb-6">
-          <Btn onClick={() => setAdding(true)}>
-            <Plus className="h-4 w-4" />
-            Thêm câu hỏi
-          </Btn>
-          <CsvImportSection onAdd={imported => save(title, [...questions, ...imported])} />
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => setAdding(true)}>
+              <Plus className="h-4 w-4" />
+              Thêm câu hỏi
+            </Btn>
+            <Btn variant="ghost" onClick={() => setImportOpen(open => !open)}>
+              <FileSpreadsheet className="h-4 w-4" />
+              Nhập từ Excel
+            </Btn>
+          </div>
+          {importOpen ? (
+            <ExcelImportSection
+              onClose={() => setImportOpen(false)}
+              onAdd={imported => save(title, [...questions, ...imported])}
+            />
+          ) : null}
         </div>
       )}
 
       {questions.length === 0 ? (
-        <p className="rounded-2xl border border-slate-700/60 bg-slate-800/60 px-6 py-10 text-center text-slate-400">
-          Chưa có câu hỏi. Bấm "Thêm câu hỏi" để bắt đầu soạn, hoặc nhập nhanh từ CSV/Excel.
-        </p>
+        <EmptyState
+          icon={FileSpreadsheet}
+          title="Chưa có câu hỏi nào"
+          description="Bấm “Thêm câu hỏi” để soạn từng câu, hoặc nhập nhanh cả bộ từ tệp Excel."
+        />
       ) : (
         <ol className="space-y-4">
           {questions.map((question, index) =>
@@ -132,7 +157,7 @@ export default function PracticeEditor() {
                 />
               </li>
             ) : (
-              <li key={index} className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-4">
+              <li key={index} className={`${cardClasses} p-4`}>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
                     Câu {index + 1}

@@ -1,6 +1,6 @@
 # Plan — Học Vui (web trắc nghiệm kiểu Kahoot): các bước tiếp theo
 
-> Dự án: `D:\Project\Web game hoc tap` · Repo: https://github.com/Henrius73/Webstie-hoc-tap (main = `41e83f0`)
+> Dự án: `D:\Project\Web game hoc tap` · Repo: https://github.com/Henrius73/Webstie-hoc-tap (nhánh `main`)
 > Stack: Vite 7 + React 19 + TypeScript strict + Tailwind CSS v4 + Supabase · Deploy: Vercel
 
 ## Trạng thái hiện tại (đã xong)
@@ -12,15 +12,15 @@
 - ✅ Dev + build chạy bình thường tại `D:\Project\...` (đã rời khỏi đường dẫn chứa `#`).
 - ✅ README đầy đủ; code đã push main; bản cũ giữ ở nhánh `backup/hocvui-2026-11-11`.
 - ✅ M9 Polish (2026-11-11): âm thanh Web Audio + nút tắt/bật âm thanh, pháo giấy, điểm nhảy số, animation công bố,
-  điều khiển phím (giáo viên Space/Enter, học sinh 1–4), tự khóa bảng chọn khi hết giờ, nhập đề CSV/Excel,
+  điều khiển phím (giáo viên Space/Enter, học sinh 1–4), tự khóa bảng chọn khi hết giờ, nhập đề từ Excel,
   cảnh báo rời trang khi đề chưa lưu.
 - ✅ Quản lý phòng giáo viên (2026-11-11): bỏ khối hướng dẫn cấu hình khỏi giao diện (thông báo ngắn gọn),
   danh sách **phòng đang mở** ở trang giáo viên (tự cập nhật 5 giây), **kết thúc ván ngay** qua RPC
   `host_end_room` (migration `0002_host_room_controls.sql` — chạy sau 0001), cảnh báo tạo trùng phòng cùng bộ đề.
 - ✅ Góc **Luyện tập** (2026-11-12): tính năng trang trắc nghiệm thông thường chạy 100% client
-  (`localStorage`, không đụng Supabase) — soạn đề cục bộ + CSV, làm bài chấm ngay/cuối bài, số câu/xáo trộn/
+  (`localStorage`, không đụng Supabase) — soạn đề cục bộ + nhập Excel, làm bài chấm ngay/cuối bài, số câu/xáo trộn/
   giờ mỗi câu, xem lại từng câu, làm lại câu sai, thẻ ghi nhớ, bộ mẫu 8 câu. Trích `QuestionForm` +
-  `CsvImportSection` thành component dùng chung với trình soạn giáo viên.
+  `ExcelImportSection` thành component dùng chung với trình soạn giáo viên.
 - ✅ Chặn lỗ hổng lộ `is_correct` sớm: `fetchSnapshot` chỉ chọn `is_correct, points` khi pha reveal/finished
   (không cần đổi SQL — RLS vốn cho phép, giờ client tự hạn chế).
 - ✅ Chế độ **chơi thử không cần Supabase** (2026-11-12): `/demo` tạo phòng từ bộ luyện tập cục bộ hoặc bộ
@@ -29,6 +29,12 @@
   `hooks/useDemoRoom.ts`). `/host` tự chuyển `/demo` khi chưa cấu hình; `/join` nhận cả mã phòng thử.
 - ✅ Chuyển toàn bộ emoji/symbol trên giao diện sang **Lucide icon** (`lucide-react`); thêm nút
   **Trang chủ** ở mọi trang con (`PageShell`).
+- ✅ Nhập đề bằng **tệp Excel** thay cho CSV (2026-11-12): `xlsx` 0.20.3 (SheetJS), khối
+  `ExcelImportSection` kéo–thả/chọn tệp `.xlsx`/`.xls`, tự nhận dòng tiêu đề, báo lỗi theo số dòng Excel,
+  tải **tệp mẫu** 2 trang; đã xóa `lib/csv.ts` + `CsvImportSection`. Thư viện nạp động nên tách chunk riêng.
+- ✅ Chỉnh giao diện cho cân đối (2026-11-12): thêm lớp dùng chung `cardClasses`, `fieldClasses`,
+  `sectionLabelClasses`, component `EmptyState`; thiết kế lại Home/Join/Host/Luyện tập, header có logo
+  Học Vui, nút có focus ring rõ ràng.
 - ⛔ Chưa có project Supabase thật → auth/RLS/realtime/đồng hồ **chưa kiểm chứng đầu-cuối**.
 
 ---

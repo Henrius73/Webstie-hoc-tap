@@ -1,9 +1,11 @@
 // Màn hình phòng chơi của học sinh: lobby → câu hỏi → công bố → podium.
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
+import { PartyPopper, TimerOff, Trophy } from 'lucide-react'
 import { fetchRoomByCode, joinRoom, submitAnswer } from '../api/rooms'
 import { AnswerPad } from '../components/AnswerPad'
 import {
+  Confetti,
   ConnectionBadge,
   ErrorCard,
   LETTERS,
@@ -12,6 +14,7 @@ import {
   PlayerChips,
   Podium,
   QuestionBlock,
+  SoundToggle,
   Spinner,
   TimerBar,
   btnClasses,
@@ -20,6 +23,7 @@ import { useCountdown, useServerOffset } from '../hooks/useCountdown'
 import { useRoom } from '../hooks/useRoom'
 import { useAuth } from '../lib/auth'
 import { friendlyError } from '../lib/errors'
+import { play } from '../lib/sound'
 import { formatClock, normalizeCode } from '../lib/utils'
 
 export default function StudentRoom() {
@@ -101,6 +105,7 @@ export default function StudentRoom() {
     if (!room || myAnswer || submitting) return
     setSubmitting(true)
     setNotice(null)
+    play('pick')
     try {
       await submitAnswer(room.id, index)
       await refresh()
@@ -110,6 +115,33 @@ export default function StudentRoom() {
       setSubmitting(false)
     }
   }
+
+  // Âm thanh khi chuyển pha: đúng/sai sau công bố, nhạc kết thúc.
+  const prevPhaseRef = useRef<string | null | undefined>(room?.phase)
+  useEffect(() => {
+    const prev = prevPhaseRef.current
+    if (room?.phase === 'reveal' && prev === 'question') {
+      if (myAnswer?.is_correct) play('correct')
+      else if (myAnswer) play('wrong')
+      else play('reveal')
+    }
+    if (room?.phase === 'finished' && prev !== 'finished') play('finish')
+    prevPhaseRef.current = room?.phase
+  }, [room?.phase, myAnswer])
+
+  // Chọn nhanh bằng phím 1–4 khi đang ở pha trả lời.
+  useEffect(() => {
+    if (room?.phase !== 'question' || myAnswer || submitting || msLeft <= 0) return
+    const onKey = (e: KeyboardEvent) => {
+      const index = ['1', '2', '3', '4'].indexOf(e.key)
+      if (index >= 0) {
+        e.preventDefault()
+        void handlePick(index)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [room?.phase, myAnswer, submitting, msLeft <= 0])
 
   // ----- Trạng thái lỗi / chờ -----
 
@@ -211,6 +243,7 @@ export default function StudentRoom() {
   return (
     <PageShell>
       <ConnectionBadge connected={connected} />
+      <SoundToggle />
 
       {notice ? (
         <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
@@ -246,9 +279,17 @@ export default function StudentRoom() {
             <p className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-emerald-200">
               Đã gửi đáp án <strong>{LETTERS[myAnswer.choice]}</strong> — chờ cả lớp trả lời xong nhé!
             </p>
+          ) : msLeft <= 0 ? (
+            <p className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-amber-200">
+              <TimerOff className="h-4 w-4" />
+              Đã hết giờ — chờ thầy/cô công bố đáp án nhé!
+            </p>
           ) : (
             <AnswerPad options={question.options} myChoice={null} onPick={handlePick} disabled={submitting} />
           )}
+          {!myAnswer && msLeft > 0 ? (
+            <p className="text-center text-xs text-slate-500">Mẹo: bấm phím 1–4 để chọn nhanh.</p>
+          ) : null}
         </section>
       ) : null}
 
@@ -265,11 +306,12 @@ export default function StudentRoom() {
           />
           {myAnswer ? (
             myAnswer.is_correct ? (
-              <p className="pop-in rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-lg font-bold text-emerald-300">
-                Chính xác! +{myAnswer.points} điểm 🎉
+              <p className="pop-in flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-lg font-bold text-emerald-300">
+                <Trophy className="h-5 w-5" />
+                Chính xác! +{myAnswer.points} điểm
               </p>
             ) : (
-              <p className="pop-in rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-lg font-bold text-rose-300">
+              <p className="shake-soft rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-lg font-bold text-rose-300">
                 Chưa đúng lần này, thử câu sau nhé!
               </p>
             )
@@ -291,7 +333,11 @@ export default function StudentRoom() {
 
       {room.phase === 'finished' ? (
         <section className="mx-auto max-w-2xl space-y-6 text-center fade-in">
-          <h1 className="text-3xl font-black">🎉 Kết thúc ván chơi!</h1>
+          <Confetti />
+          <h1 className="flex items-center justify-center gap-3 text-3xl font-black">
+            <PartyPopper className="h-8 w-8 text-amber-300" />
+            Kết thúc ván chơi!
+          </h1>
           <Podium players={players} />
           <p className="text-lg">
             Em đạt <span className="font-black text-indigo-300">{me.score} điểm</span>

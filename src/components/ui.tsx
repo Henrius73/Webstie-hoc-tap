@@ -1,14 +1,44 @@
 // Các khối giao diện dùng chung (Tailwind).
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { Link, useLocation } from 'react-router'
+import {
+  Check,
+  CircleAlert,
+  Home as HomeIcon,
+  Medal,
+  PartyPopper,
+  Sparkles,
+  Star,
+  Volume2,
+  VolumeX,
+  type LucideIcon,
+} from 'lucide-react'
 import { colorFor, cx } from '../lib/utils'
+import { play, setSoundEnabled, soundEnabled } from '../lib/sound'
 import type { PlayerRow } from '../types/db'
 
 export const LETTERS = ['A', 'B', 'C', 'D']
 
 export function PageShell({ children }: { children: ReactNode }) {
+  const location = useLocation()
+  const isHome = location.pathname === '/'
+
   return (
     <div className="min-h-dvh bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 text-slate-100">
-      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">{children}</div>
+      <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:py-12">
+        {isHome ? null : (
+          <nav className="mb-6">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700"
+            >
+              <HomeIcon className="h-3.5 w-3.5" />
+              Trang chủ
+            </Link>
+          </nav>
+        )}
+        {children}
+      </div>
     </div>
   )
 }
@@ -65,9 +95,7 @@ export function ErrorCard({
 }) {
   return (
     <section className="mx-auto max-w-md rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-center fade-in">
-      <div className="mb-3 text-4xl" aria-hidden>
-        😕
-      </div>
+      <CircleAlert className="mx-auto mb-3 h-10 w-10 text-rose-300" />
       <h2 className="mb-2 text-lg font-bold text-rose-200">{title}</h2>
       <p className="mb-4 text-sm text-slate-300">{message}</p>
       {onRetry ? (
@@ -75,47 +103,6 @@ export function ErrorCard({
           Thử lại
         </Btn>
       ) : null}
-    </section>
-  )
-}
-
-export function SetupCard() {
-  return (
-    <section className="mt-10 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-6 fade-in">
-      <h2 className="mb-2 text-lg font-bold text-amber-300">Cần cấu hình Supabase</h2>
-      <p className="mb-4 text-sm text-slate-300">
-        Phần chơi trực tuyến dùng Supabase (Postgres + Auth + Realtime). Làm lần lượt các bước sau:
-      </p>
-      <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-300">
-        <li>
-          Tạo project tại{' '}
-          <a className="text-amber-300 underline" href="https://supabase.com" target="_blank" rel="noopener">
-            supabase.com
-          </a>
-          .
-        </li>
-        <li>
-          Vào <strong>Authentication → Sign In / Providers</strong>, bật <strong>Anonymous sign-ins</strong> (học sinh
-          không cần tài khoản).
-        </li>
-        <li>
-          Vào <strong>Authentication → URL Configuration</strong>: đặt <strong>Site URL</strong> là địa chỉ trang
-          (ví dụ <code>http://localhost:5173</code>) và thêm <strong>Redirect URLs</strong> tương ứng
-          (<code>http://localhost:5173/**</code> và tên miền deploy).
-        </li>
-        <li>
-          Mở <strong>SQL Editor</strong>, dán và chạy toàn bộ file{' '}
-          <code>supabase/migrations/0001_init.sql</code>.
-        </li>
-        <li>
-          Sao chép <code>.env.example</code> thành <code>.env</code>, điền <strong>Project URL</strong> và{' '}
-          <strong>Publishable key</strong> (Project Settings → API Keys), rồi chạy lại <code>npm run dev</code>.
-        </li>
-      </ol>
-      <p className="mt-4 text-xs text-slate-400">
-        Publishable key được phép công khai — bảo mật nằm ở RLS. Tuyệt đối không đặt secret key (sb_secret_...) trong
-        .env.
-      </p>
     </section>
   )
 }
@@ -131,6 +118,100 @@ export function ConnectionBadge({ connected }: { connected: boolean }) {
     >
       <span className={cx('h-2 w-2 rounded-full', connected ? 'bg-emerald-400' : 'bg-rose-400')} />
       {connected ? 'Realtime' : 'Mất kết nối, đang thử lại...'}
+    </div>
+  )
+}
+
+export function SoundToggle() {
+  const [on, setOn] = useState(() => soundEnabled())
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const next = !on
+        setOn(next)
+        setSoundEnabled(next)
+        if (next) play('join')
+      }}
+      className="fixed bottom-3 left-3 z-50 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg hover:bg-slate-700"
+      aria-label={on ? 'Tắt âm thanh' : 'Bật âm thanh'}
+      title={on ? 'Tắt âm thanh' : 'Bật âm thanh'}
+    >
+      {on ? (
+        <>
+          <Volume2 className="h-3.5 w-3.5" />
+          Âm thanh
+        </>
+      ) : (
+        <>
+          <VolumeX className="h-3.5 w-3.5" />
+          Đã tắt tiếng
+        </>
+      )}
+    </button>
+  )
+}
+
+// Con số điểm có hiệu ứng "nhảy" dần lên giá trị mới (dùng khi cộng điểm).
+export function ScoreNumber({ value, className }: { value: number; className?: string }) {
+  const [display, setDisplay] = useState(value)
+  const prevRef = useRef(value)
+
+  useEffect(() => {
+    const from = prevRef.current
+    if (from === value) return
+    const start = performance.now()
+    const duration = 650
+    let raf = 0
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - p, 3)
+      setDisplay(Math.round(from + (value - from) * eased))
+      if (p < 1) {
+        raf = requestAnimationFrame(tick)
+      } else {
+        prevRef.current = value
+      }
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [value])
+
+  return <span className={className}>{display}</span>
+}
+
+const CONFETTI_ICONS: LucideIcon[] = [PartyPopper, Sparkles, Star, Medal]
+
+// Pháo giấy nhẹ bằng CSS — chỉ hiện khi kết thúc ván.
+export function Confetti({ count = 30 }: { count?: number }) {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        id: i,
+        Icon: CONFETTI_ICONS[i % CONFETTI_ICONS.length],
+        left: Math.random() * 100,
+        delay: Math.random() * 2.2,
+        duration: 2.8 + Math.random() * 2.4,
+        size: Math.random() < 0.5 ? 'h-4 w-4' : 'h-6 w-6',
+        color: ['text-amber-300', 'text-indigo-300', 'text-emerald-300', 'text-rose-300'][i % 4],
+      })),
+    [count],
+  )
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+      {pieces.map(piece => (
+        <span
+          key={piece.id}
+          className={cx('confetti absolute', piece.color)}
+          style={{
+            left: `${piece.left}%`,
+            animationDelay: `${piece.delay}s`,
+            animationDuration: `${piece.duration}s`,
+          }}
+        >
+          <piece.Icon className={piece.size} />
+        </span>
+      ))}
     </div>
   )
 }
@@ -193,11 +274,26 @@ export function PlayerChips({
               {player.id === meId ? ' (em)' : ''}
             </span>
             <span className="text-slate-400">{player.score}</span>
-            {answered ? <span className="text-emerald-400">✓</span> : null}
+            {answered ? <Check className="h-4 w-4 text-emerald-400" /> : null}
           </span>
         )
       })}
     </div>
+  )
+}
+
+const MEDAL_STYLES = ['text-amber-300', 'text-slate-300', 'text-orange-400']
+
+// Huy chương vàng/bạc/đồng cho 3 hạng đầu; các hạng sau hiện số.
+function RankMedal({ rank, size = 'sm' }: { rank: number; size?: 'sm' | 'lg' }) {
+  if (rank > 3) {
+    return <span className="text-lg font-black">{rank}</span>
+  }
+  return (
+    <Medal
+      className={cx(MEDAL_STYLES[rank - 1], size === 'lg' ? 'h-9 w-9' : 'h-6 w-6')}
+      aria-label={`Hạng ${rank}`}
+    />
   )
 }
 
@@ -221,12 +317,14 @@ export function Leaderboard({
             player.id === meId ? 'border border-indigo-400/50 bg-indigo-500/20' : 'bg-slate-800/70',
           )}
         >
-          <span className="w-7 text-center text-lg font-black">
-            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+          <span className="flex w-7 items-center justify-center">
+            <RankMedal rank={index + 1} />
           </span>
           <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: colorFor(player.id) }} />
           <span className="flex-1 truncate font-medium">{player.name}</span>
-          <span className="font-mono font-bold">{player.score} điểm</span>
+          <span className="font-mono font-bold">
+            <ScoreNumber value={player.score} /> điểm
+          </span>
         </li>
       ))}
     </ol>
@@ -237,11 +335,7 @@ export function Podium({ players }: { players: PlayerRow[] }) {
   const top = players.slice(0, 3)
   if (!top.length) return null
 
-  const config = [
-    { height: 'h-36 sm:h-44', label: '🥇' },
-    { height: 'h-24 sm:h-28', label: '🥈' },
-    { height: 'h-16 sm:h-20', label: '🥉' },
-  ]
+  const config = [{ height: 'h-36 sm:h-44' }, { height: 'h-24 sm:h-28' }, { height: 'h-16 sm:h-20' }]
   // Xếp người thứ nhất đứng giữa khi đủ 3 người.
   const order = top.length >= 3 ? [1, 0, 2] : top.length === 2 ? [1, 0] : [0]
 
@@ -252,11 +346,11 @@ export function Podium({ players }: { players: PlayerRow[] }) {
         const conf = config[rank]
         return (
           <div key={player.id} className="flex w-24 flex-col items-center gap-2 sm:w-32">
-            <div className="text-3xl" aria-hidden>
-              {conf.label}
-            </div>
+            <RankMedal rank={rank + 1} size="lg" />
             <div className="max-w-full truncate font-bold">{player.name}</div>
-            <div className="font-mono text-sm text-slate-300">{player.score}</div>
+            <div className="font-mono text-sm text-slate-300">
+              <ScoreNumber value={player.score} />
+            </div>
             <div
               className={cx('w-full rounded-t-xl border-t-4 bg-slate-800/80', conf.height)}
               style={{ borderTopColor: colorFor(player.id) }}

@@ -1,4 +1,5 @@
 // Bảng 4 đáp án cho học sinh (chọn / đã chọn / đã công bố).
+import { Check, X } from 'lucide-react'
 import { cx } from '../lib/utils'
 import { LETTERS } from './ui'
 
@@ -58,8 +59,8 @@ export function AnswerPad({
               {LETTERS[index]}
             </span>
             <span className="flex-1 text-base leading-snug sm:text-lg">{option}</span>
-            {revealed && isCorrect ? <span className="text-2xl">✓</span> : null}
-            {revealed && chosen && !isCorrect ? <span className="text-2xl">✕</span> : null}
+            {revealed && isCorrect ? <Check className="h-6 w-6 shrink-0" /> : null}
+            {revealed && chosen && !isCorrect ? <X className="h-6 w-6 shrink-0" /> : null}
           </button>
         )
       })}

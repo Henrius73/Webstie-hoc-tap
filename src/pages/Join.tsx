@@ -1,9 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { ArrowLeft, Gamepad2, MonitorSmartphone } from 'lucide-react'
 import { joinRoom } from '../api/rooms'
-import { Btn, PageShell } from '../components/ui'
+import { Btn, PageShell, btnClasses } from '../components/ui'
 import { useAuth } from '../lib/auth'
+import { getDemoRoomByCode, joinDemoRoom } from '../lib/demoRoom'
 import { friendlyError } from '../lib/errors'
+import { isConfigured } from '../lib/supabase'
 import { normalizeCode } from '../lib/utils'
 
 export default function Join() {
@@ -31,6 +34,29 @@ export default function Join() {
 
     setBusy(true)
     try {
+      // Ưu tiên phòng chơi thử lưu trên máy này (không cần Supabase).
+      if (getDemoRoomByCode(cleanCode)) {
+        const result = joinDemoRoom(cleanCode, cleanName)
+        if ('error' in result) {
+          setError(
+            result.error === 'room_finished'
+              ? 'Ván chơi thử này đã kết thúc. Hãy chờ giáo viên mở phòng mới.'
+              : 'Không vào được phòng thử. Hãy thử lại.',
+          )
+          return
+        }
+        localStorage.setItem('hocvui.name', cleanName)
+        navigate(`/demo/play/${cleanCode}`)
+        return
+      }
+
+      if (!isConfigured) {
+        setError(
+          'Không tìm thấy phòng thử này trên máy. Chế độ chơi thử chỉ dùng được trên trình duyệt đã tạo phòng — hãy nhờ giáo viên tạo phòng thử mới.',
+        )
+        return
+      }
+
       await ensureAnonymous()
       await joinRoom(cleanCode, cleanName)
       localStorage.setItem('hocvui.name', cleanName)
@@ -46,9 +72,7 @@ export default function Join() {
     <PageShell>
       <section className="mx-auto max-w-md fade-in">
         <div className="mb-6 text-center">
-          <div className="mb-3 text-5xl" aria-hidden>
-            🎮
-          </div>
+          <Gamepad2 className="mx-auto mb-3 h-12 w-12 text-indigo-300" />
           <h1 className="text-3xl font-black">Vào phòng chơi</h1>
           <p className="mt-2 text-sm text-slate-400">Nhập mã phòng do giáo viên chiếu trên bảng.</p>
         </div>
@@ -98,6 +122,22 @@ export default function Join() {
             Không cần tài khoản. Tên trùng vẫn chơi được, nhưng nên dùng tên khác cho dễ phân biệt.
           </p>
         </form>
+
+        {!isConfigured ? (
+          <div className="mt-6 rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-4 text-center text-sm">
+            <p className="mb-2 inline-flex items-center gap-2 font-semibold text-indigo-200">
+              <MonitorSmartphone className="h-4 w-4" />
+              Chế độ chơi thử
+            </p>
+            <p className="mb-3 text-slate-300">
+              Chưa kết nối máy chủ dữ liệu. Giáo viên có thể tạo phòng thử ngay trên máy này.
+            </p>
+            <Link to="/demo" className={btnClasses('ghost')}>
+              <ArrowLeft className="h-4 w-4" />
+              Trang tạo phòng thử
+            </Link>
+          </div>
+        ) : null}
 
         <p className="mt-6 text-center text-sm text-slate-400">
           Là giáo viên?{' '}

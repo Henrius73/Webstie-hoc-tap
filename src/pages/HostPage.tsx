@@ -1,9 +1,10 @@
-// Trang giáo viên: đăng nhập email (magic link) + quản lý bộ câu hỏi.
+// Trang giáo viên: đăng nhập email (magic link) + quản lý bộ câu hỏi và phòng đang mở.
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
-import { createRoom } from '../api/rooms'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
+import { GraduationCap, MailCheck, Pencil, Plus, Rocket, Trash2, Undo2 } from 'lucide-react'
+import { createRoom, fetchActiveRooms, type ActiveRoom } from '../api/rooms'
 import { createQuizSet, deleteQuizSet, listQuizzes, type QuizSummary } from '../api/quizzes'
-import { Btn, ErrorCard, PageShell, SetupCard, Spinner, btnClasses } from '../components/ui'
+import { Btn, ErrorCard, PageShell, Spinner, btnClasses } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { friendlyError } from '../lib/errors'
 import { isConfigured } from '../lib/supabase'
@@ -21,12 +22,8 @@ export default function HostPage() {
   }, [user, location.search, location.pathname, navigate])
 
   if (!isConfigured) {
-    return (
-      <PageShell>
-        <h1 className="mb-6 text-center text-3xl font-black">Trang giáo viên</h1>
-        <SetupCard />
-      </PageShell>
-    )
+    // Chưa cấu hình Supabase → dùng chế độ chơi thử cục bộ.
+    return <Navigate to="/demo" replace />
   }
 
   if (!ready) {
@@ -40,6 +37,14 @@ export default function HostPage() {
   if (!isTeacher || !user) return <TeacherLogin sendTeacherLink={sendTeacherLink} signOut={signOut} />
 
   return <HostDashboard email={user.email ?? ''} onSignOut={() => void signOut()} />
+}
+
+// ----- Nhãn pha cho phòng đang mở -----
+
+function roomPhaseLabel(room: ActiveRoom): string {
+  if (room.phase === 'lobby') return 'Đang chờ học sinh'
+  if (room.phase === 'question') return `Đang hỏi câu ${room.qIndex + 1}/${room.totalQuestions}`
+  return `Đang công bố câu ${room.qIndex + 1}/${room.totalQuestions}`
 }
 
 // ----- Đăng nhập -----
@@ -79,9 +84,7 @@ function TeacherLogin({
     <PageShell>
       <section className="mx-auto max-w-md fade-in">
         <div className="mb-6 text-center">
-          <div className="mb-3 text-5xl" aria-hidden>
-            🧑‍🏫
-          </div>
+          <GraduationCap className="mx-auto mb-3 h-12 w-12 text-indigo-300" />
           <h1 className="text-3xl font-black">Giáo viên đăng nhập</h1>
           <p className="mt-2 text-sm text-slate-400">
             Nhập email để nhận liên kết đăng nhập. Bộ câu hỏi sẽ được lưu vào tài khoản của thầy/cô.
@@ -113,7 +116,10 @@ function TeacherLogin({
 
           {sent ? (
             <div className="space-y-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-              <p className="font-semibold">Đã gửi liên kết đăng nhập! 📬</p>
+              <p className="inline-flex items-center gap-2 font-semibold">
+                <MailCheck className="h-4 w-4" />
+                Đã gửi liên kết đăng nhập!
+              </p>
               <p>
                 Mở hộp thư email của thầy/cô <strong>trên trình duyệt này</strong> và bấm vào liên kết để quay lại
                 trang. (Nhớ thêm địa chỉ trang web vào Redirect URLs trong Supabase nếu chưa làm.)
@@ -151,6 +157,7 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
   const [newTitle, setNewTitle] = useState('')
   const [creating, setCreating] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
 
   const load = useCallback(async () => {
     try {
@@ -164,6 +171,21 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
   useEffect(() => {
     void load()
   }, [load])
+
+  // Phòng đang mở: cập nhật nhẹ mỗi 5 giây (học sinh vào phòng, pha đổi...).
+  const loadRooms = useCallback(async () => {
+    try {
+      setActiveRooms(await fetchActiveRooms())
+    } catch {
+      // giữ danh sách cũ, không đè lỗi của phần bộ câu hỏi
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadRooms()
+    const timer = setInterval(() => void loadRooms(), 5000)
+    return () => clearInterval(timer)
+  }, [loadRooms])
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -185,6 +207,11 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
   }
 
   async function handleStartRoom(quizId: string) {
+    // Cảnh báo nếu bộ này đã có phòng đang mở.
+    const openRoom = activeRooms.find(room => room.quizId === quizId)
+    if (openRoom && !window.confirm(`Bộ này đã có phòng đang mở (mã ${openRoom.code}). Tạo thêm phòng mới?`)) {
+      return
+    }
     setBusyId(quizId)
     setError(null)
     try {
@@ -239,9 +266,44 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
           className="flex-1 rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 outline-none focus:border-indigo-400 disabled:opacity-50"
         />
         <Btn type="submit" disabled={creating}>
-          {creating ? 'Đang tạo...' : '+ Tạo bộ mới'}
+          <Plus className="h-4 w-4" />
+          {creating ? 'Đang tạo...' : 'Tạo bộ mới'}
         </Btn>
       </form>
+
+      {activeRooms.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="mb-3 text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            Phòng đang mở
+          </h2>
+          <ul className="space-y-3">
+            {activeRooms.map(room => (
+              <li
+                key={room.id}
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-4"
+              >
+                <span className="font-mono text-2xl font-black tracking-[0.2em] text-indigo-200">
+                  {room.code}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-bold">{room.quizTitle}</p>
+                  <p className="text-xs text-slate-400">
+                    {room.playerCount} học sinh · {roomPhaseLabel(room)} · mở lúc{' '}
+                    {new Date(room.createdAt).toLocaleTimeString('vi-VN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+                <Link to={`/host/room/${room.id}`} className={btnClasses('primary')}>
+                  <Undo2 className="h-4 w-4" />
+                  Vào phòng
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {quizzes === null ? (
         <Spinner label="Đang tải danh sách..." />
@@ -264,13 +326,21 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link to={`/host/quiz/${quiz.id}`} className={btnClasses('ghost')}>
-                  ✏️ Sửa
+                  <Pencil className="h-4 w-4" />
+                  Sửa
                 </Link>
                 <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
-                  {busyId === quiz.id ? 'Đang mở...' : '🚀 Tạo phòng'}
+                  {busyId === quiz.id ? (
+                    'Đang mở...'
+                  ) : (
+                    <>
+                      <Rocket className="h-4 w-4" />
+                      Tạo phòng
+                    </>
+                  )}
                 </Btn>
                 <Btn variant="danger" disabled={busyId === quiz.id} onClick={() => void handleDelete(quiz)}>
-                  🗑
+                  <Trash2 className="h-4 w-4" />
                 </Btn>
               </div>
             </li>

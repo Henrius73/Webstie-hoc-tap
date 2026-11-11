@@ -15,6 +15,9 @@ export function friendlyError(err: unknown): string {
   if (/Failed to fetch|NetworkError|Load failed|fetch failed/i.test(raw)) {
     return 'Không kết nối được tới Supabase. Hãy kiểm tra mạng rồi thử lại.'
   }
+  if (/rate limit|too many/i.test(raw)) {
+    return 'Bạn thao tác quá nhanh, hãy chờ ít phút rồi thử lại.'
+  }
   if (/JWT|permission denied|row-level security/i.test(raw)) {
     return 'Tài khoản chưa có quyền thực hiện thao tác này. Hãy đăng nhập lại.'
   }

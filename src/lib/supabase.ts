@@ -26,9 +26,7 @@ export const supabase: SupabaseClient | null = isConfigured
 
 export function requireSupabase(): SupabaseClient {
   if (!supabase) {
-    throw new Error(
-      'Chưa cấu hình Supabase. Hãy sao chép .env.example thành .env, điền Project URL và Publishable key, rồi chạy lại npm run dev.',
-    )
+    throw new Error('Chưa kết nối được máy chủ dữ liệu. Hãy thử lại sau ít phút.')
   }
   return supabase
 }

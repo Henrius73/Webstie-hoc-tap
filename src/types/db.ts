@@ -56,8 +56,9 @@ export interface AnswerRow {
   room_id: string
   q_index: number
   choice: number
-  is_correct: boolean
-  points: number
+  // Chỉ trả về khi pha là 'reveal'/'finished' — tránh lộ đúng/sai trước khi công bố.
+  is_correct?: boolean
+  points?: number
 }
 
 // Dạng câu hỏi khi soạn/chỉnh sửa trong trình soạn thảo.

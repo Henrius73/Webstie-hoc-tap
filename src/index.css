@@ -44,3 +44,53 @@
 .blink-soft {
   animation: blink-soft 1.4s ease-in-out infinite;
 }
+
+/* Vòng sáng nhấp nháy quanh đáp án đúng khi công bố */
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(52 211 153 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgb(52 211 153 / 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.1s ease-in-out infinite;
+}
+
+/* Rung nhẹ khi trả lời sai */
+@keyframes shake-soft {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+.shake-soft {
+  animation: shake-soft 0.3s ease-in-out 2;
+}
+
+/* Pháo giấy khi kết thúc ván */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-8vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(112vh) rotate(560deg);
+    opacity: 0.85;
+  }
+}
+
+.confetti {
+  top: 0;
+  animation: confetti-fall linear both;
+}

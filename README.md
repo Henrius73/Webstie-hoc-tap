@@ -1,4 +1,4 @@
-# 🎓 Học Vui — Trò chơi trắc nghiệm cả lớp (kiểu Kahoot)
+# Học Vui — Trò chơi trắc nghiệm cả lớp (kiểu Kahoot)
 
 Web app học tập realtime: giáo viên soạn bộ câu hỏi, tạo phòng chiếu mã lên bảng; học sinh vào bằng mã
 phòng + tên, trả lời trắc nghiệm theo thời gian thực, điểm được tổng hợp và xếp hạng ngay trong lớp.
@@ -11,15 +11,42 @@ deploy trên **Vercel**.
 **Giáo viên**
 - Đăng nhập bằng email (magic link, không cần mật khẩu).
 - Soạn bộ câu hỏi ngay trong app: nội dung, 4 đáp án, chọn đáp án đúng, thời gian 5–300 giây, ảnh (URL), sắp xếp thứ tự.
+- **Nhập nhanh đề từ CSV/Excel**: dán bảng hoặc chọn tệp .csv (`câu hỏi, A, B, C, D, đáp án đúng, thời gian`).
 - Tạo phòng chơi — nhận mã 6 chữ số + liên kết để chiếu lên bảng.
-- Điều khiển ván chơi: bắt đầu, xem thống kê trả lời theo thời gian thực, công bố sớm hoặc tự động, sang câu tiếp, kết thúc.
+- **Danh sách phòng đang mở** ngay tại trang chủ giáo viên (mã phòng, bộ đề, số học sinh, pha hiện tại) — lỡ tắt tab hay quay lại vẫn vào lại được.
+- Điều khiển ván chơi: bắt đầu, xem thống kê trả lời theo thời gian thực (kèm chip ✓ ai đã trả lời), công bố sớm hoặc tự động, sang câu tiếp, kết thúc.
+- **Kết thúc ván ngay** từ bất kỳ pha nào (có xác nhận) — dùng khi cần dừng sớm.
+- **Điều khiển bằng phím**: `Space`/`Enter` = công bố hoặc sang câu tiếp — bấm từ xa được, không cần chuột.
 - Xem podium top 3 + bảng tổng hợp điểm từng học sinh.
 
 **Học sinh**
 - Không cần tài khoản (đăng nhập ẩn danh tự động).
 - Vào phòng bằng mã 6 số + tên (1–20 ký tự) — vào muộn vẫn được cho đến khi ván kết thúc.
 - Đồng hồ đếm ngược theo **giờ server** (máy chậm/nhanh lệch giờ vẫn công bằng), mỗi câu chỉ gửi được 1 đáp án.
+- **Chọn nhanh bằng phím 1–4** trên bàn phím máy tính.
 - Xem đáp án đúng sau công bố, điểm nhận được, bảng xếp hạng và podium cuối ván.
+
+**Trải nghiệm chung**
+- Giao diện dùng icon [Lucide](https://lucide.dev) (không dùng emoji), nút **Trang chủ** ở mọi trang con.
+- Âm thanh hiệu ứng tổng hợp (Web Audio, không cần tệp nhạc) + nút tắt/bật âm thanh.
+- Pháo giấy + điểm "nhảy số" khi tổng kết, animation khi công bố đáp án đúng.
+- Hết giờ tự khóa bảng chọn đáp án của học sinh (server vẫn chặn gửi muộn ở lớp bảo vệ thứ 2).
+
+**Chế độ chơi thử (không cần Supabase)**
+- Mở `/demo` để tạo phòng từ bộ câu hỏi đã lưu trên máy (hoặc bộ mẫu 8 câu) — chạy 100% trên trình duyệt.
+- Trạng thái phòng lưu trong `localStorage`; các tab **cùng trình duyệt** đồng bộ qua `BroadcastChannel`
+  + sự kiện `storage`. Tab giáo viên điều khiển pha, tab học sinh vào bằng mã như phòng thật.
+- Đầy đủ lobby → câu hỏi (đồng hồ, thống kê) → công bố → podium, âm thanh và phím tắt giống chế độ Supabase.
+- Giới hạn: chỉ chơi được trên máy đã tạo phòng. Muốn chơi giữa nhiều máy vẫn cần cấu hình Supabase.
+
+**Luyện tập (tự học — chạy hoàn toàn trên trình duyệt, không cần mạng/Supabase)**
+- Tự soạn bộ câu hỏi lưu trong `localStorage` (tự động lưu sau mỗi thay đổi), nhập nhanh từ CSV/Excel,
+  nhân bản/xóa bộ, kèm bộ câu hỏi mẫu để dùng thử ngay.
+- Làm bài kiểu trang trắc nghiệm thông thường: **chấm ngay sau mỗi câu** hoặc **chấm cuối bài (kiểu đề thi)**,
+  chọn số câu, xáo trộn câu/đáp án, giới hạn thời gian mỗi câu, phím tắt 1–4 và Enter.
+- Kết quả: điểm %, thống kê đúng/sai/hết giờ, **xem lại từng câu với đáp án đúng**, **làm lại chỉ những câu sai**,
+  lưu lần gần nhất + lần tốt nhất của từng bộ.
+- **Thẻ ghi nhớ (flashcards)**: lật thẻ câu hỏi → đáp án, đánh dấu "biết rồi / chưa nhớ", thẻ chưa nhớ lặp lại cuối hàng.
 
 **Cách tính điểm (server chấm, không phía client):** trả lời đúng được **1000 điểm nếu bấm ngay**,
 giảm dần còn **500 điểm khi hết giờ**; sai hoặc không trả lời: **0 điểm**.
@@ -58,8 +85,10 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
 2. **Authentication → Sign In / Providers**: bật **Anonymous sign-ins** (học sinh không cần tài khoản).
 3. **Authentication → URL Configuration**: đặt **Site URL** = `http://localhost:5173` (hoặc domain sau khi
    deploy), thêm **Redirect URLs**: `http://localhost:5173/**` và domain deploy (`https://ten-mien.vercel.app/**`).
-4. **SQL Editor**: tạo query mới, dán toàn bộ file [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
-   rồi **Run**. File này tạo bảng, RPC và RLS — mọi thứ nằm trong 1 file.
+4. **SQL Editor**: chạy lần lượt **cả hai** file migration theo thứ tự —
+   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) (bảng, RPC, RLS) rồi
+   [`supabase/migrations/0002_host_room_controls.sql`](supabase/migrations/0002_host_room_controls.sql)
+   (kết thúc phòng sớm + index phòng đang mở).
 5. Tạo file `.env` ở gốc dự án (sao chép từ `.env.example`) và điền:
 
    ```
@@ -70,7 +99,8 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
    Lấy ở **Project Settings → API Keys**. Publishable key được phép công khai (bảo mật nằm ở RLS),
    **tuyệt đối không đặt secret key (`sb_secret_...`) trong `.env`**.
 
-Chưa cấu hình xong thì app vẫn mở được và hiện thẻ hướng dẫn từng bước.
+Chưa cấu hình Supabase thì app tự chuyển sang **chế độ chơi thử** (`/demo`) — vẫn dùng được đầy đủ
+trên một máy. Khi điền đủ biến môi trường, `/host` quay lại luồng đăng nhập giáo viên như bình thường.
 
 ## Deploy lên Vercel
 
@@ -89,6 +119,9 @@ Chưa cấu hình xong thì app vẫn mở được và hiện thẻ hướng d�
 4. Giáo viên bấm **Bắt đầu** → mỗi câu: đếm ngược → giáo viên xem thống kê → hết giờ hệ thống tự
    công bố sau ~1 giây (hoặc bấm công bố sớm) → bấm **Câu tiếp theo**.
 5. Hết câu: podium + bảng tổng hợp điểm từng học sinh.
+
+**Chưa có Supabase?** Mở `/demo` → chọn bộ câu hỏi (hoặc bộ mẫu) → **Mở phòng thử** → mở tab khác
+cùng trình duyệt vào `/demo/play/<mã>` (hoặc `/join`) và nhập mã. Các bước điều khiển giống hệt trên.
 
 ## Bảo mật — nằm ở đâu?
 
@@ -116,22 +149,28 @@ SELECT trong `fetchSnapshot`/`fetchAnswerStats` cho pha chưa công bố.
 ```
 src/
   api/        # quizzes.ts, rooms.ts, realtime.ts — lớp gọi Supabase
-  components/ # ui.tsx (khối giao diện chung), AnswerPad.tsx
-  hooks/      # useRoom.ts (snapshot + realtime), useCountdown.ts (đồng hồ server)
-  lib/        # supabase.ts (client), auth.tsx (giáo viên/học sinh), errors.ts, utils.ts
-  pages/      # Home, Join, StudentRoom, HostPage, QuizEditor, HostRoom
+  components/ # ui.tsx (khối giao diện chung), AnswerPad.tsx, QuestionForm.tsx, CsvImportSection.tsx
+  hooks/      # useRoom.ts (snapshot + realtime), useDemoRoom.ts (phòng thử),
+               # useCountdown.ts (đồng hồ server)
+  lib/        # supabase.ts (client), auth.tsx (giáo viên/học sinh), errors.ts, utils.ts,
+               # csv.ts (đọc đề CSV/Excel), sound.ts (âm thanh Web Audio),
+               # practiceStore.ts (luyện tập cục bộ), demoRoom.ts (phòng thử localStorage)
+  pages/      # Home, Join, StudentRoom, HostPage, QuizEditor, HostRoom,
+               # DemoHost, DemoHostRoom, DemoStudentRoom (chế độ chơi thử),
+               # Practice, PracticeEditor, PracticeRun, PracticeFlash (góc luyện tập)
   types/      # db.ts — kiểu dữ liệu các bảng
 supabase/
-  migrations/ # 0001_init.sql — schema + RPC + RLS (chạy trong SQL Editor)
+  migrations/ # 0001_init.sql — schema + RPC + RLS · 0002_host_room_controls.sql — kết thúc phòng sớm
 ```
 
 ## Giới hạn hiện tại & hướng phát triển
 
 - Chưa test đầu-cuối trên project Supabase thật (auth, RLS, realtime, đồng hồ server) — cần tạo
   project và chạy thử theo các bước trên. Khuyến nghị thử giả lập ~40 học sinh trước khi dùng thật.
-- Chưa có import câu hỏi từ Excel/CSV (soạn tay trong app).
-- Chưa có âm thanh, chỉ hiệu ứng CSS.
+- Chế độ chơi thử chỉ hoạt động trong **cùng trình duyệt/máy** (dữ liệu trong `localStorage`).
+  Chơi giữa nhiều máy cần cấu hình Supabase.
 - Điểm/phiên chơi không lưu lịch sử lâu dài (phòng `finished` vẫn đọc được cho đến khi dọn).
+- Chưa có quản lý lớp học sinh, ngân hàng câu hỏi dùng chung hay xuất kết quả ra file.
 
 ---
 

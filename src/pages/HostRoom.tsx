@@ -1,10 +1,11 @@
 // Màn điều khiển phòng của giáo viên: lobby → câu hỏi (thống kê) → công bố → kết thúc.
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { fetchAnswerStats, type AnswerStats } from '../api/rooms'
-import { nextQuestion, revealAnswer } from '../api/rooms'
+import { ArrowLeft, BellRing, Check, ClipboardCopy, Flag, PartyPopper, Play, Square } from 'lucide-react'
+import { endRoom, fetchAnswerStats, nextQuestion, revealAnswer, type AnswerStats } from '../api/rooms'
 import {
   Btn,
+  Confetti,
   ConnectionBadge,
   ErrorCard,
   LETTERS,
@@ -13,6 +14,7 @@ import {
   PlayerChips,
   Podium,
   QuestionBlock,
+  SoundToggle,
   Spinner,
   TimerBar,
   btnClasses,
@@ -21,6 +23,7 @@ import { useCountdown, useServerOffset } from '../hooks/useCountdown'
 import { useRoom } from '../hooks/useRoom'
 import { useAuth } from '../lib/auth'
 import { friendlyError } from '../lib/errors'
+import { play } from '../lib/sound'
 import { cx, formatClock } from '../lib/utils'
 
 export default function HostRoom() {
@@ -69,9 +72,9 @@ export default function HostRoom() {
     return () => clearTimeout(timer)
   }, [room?.id, room?.phase, room?.q_index, room?.question_ends_at, offset, refresh])
 
-  // Thống kê đáp án của câu hiện tại (chỉ giáo viên đọc được).
+  // Thống kê đáp án của câu hiện tại (chỉ giáo viên đọc được) — cả pha question lẫn reveal.
   useEffect(() => {
-    if (!room || room.phase !== 'question' || room.q_index < 0) {
+    if (!room || (room.phase !== 'question' && room.phase !== 'reveal') || room.q_index < 0) {
       setStats(null)
       return
     }
@@ -91,6 +94,38 @@ export default function HostRoom() {
       clearInterval(timer)
     }
   }, [room, room?.phase, room?.q_index, version])
+
+  // Âm thanh: công bố, kết thúc, học sinh mới vào phòng.
+  const prevPhaseRef = useRef<string | null | undefined>(room?.phase)
+  useEffect(() => {
+    const prev = prevPhaseRef.current
+    if (room?.phase === 'reveal' && prev === 'question') play('reveal')
+    if (room?.phase === 'finished' && prev !== 'finished') play('finish')
+    prevPhaseRef.current = room?.phase
+  }, [room?.phase])
+
+  const playersCountRef = useRef(0)
+  useEffect(() => {
+    if (players.length > playersCountRef.current) play('join')
+    playersCountRef.current = players.length
+  }, [players.length])
+
+  // Điều khiển bằng phím: Space/Enter = công bố (đang hỏi) hoặc sang câu tiếp / bắt đầu.
+  useEffect(() => {
+    if (!room) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || busy) return
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      const tag = (e.target as HTMLElement | null)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'A') return
+      e.preventDefault()
+      if (room.phase === 'question') void handleReveal()
+      else if (room.phase === 'reveal') void handleNext()
+      else if (room.phase === 'lobby' && players.length > 0) void handleNext()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [room, busy, players.length])
 
   async function handleReveal() {
     if (!room || busy) return
@@ -113,6 +148,27 @@ export default function HostRoom() {
     setActionError(null)
     try {
       await nextQuestion(room.id)
+      await refresh()
+    } catch (err) {
+      setActionError(friendlyError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleEndRoom() {
+    if (!room || busy) return
+    if (
+      !window.confirm(
+        'Kết thúc ván chơi ngay bây giờ? Bảng xếp hạng sẽ dùng điểm đã công bố đến thời điểm này.',
+      )
+    ) {
+      return
+    }
+    setBusy(true)
+    setActionError(null)
+    try {
+      await endRoom(room.id)
       await refresh()
     } catch (err) {
       setActionError(friendlyError(err))
@@ -160,6 +216,25 @@ export default function HostRoom() {
   return (
     <PageShell>
       <ConnectionBadge connected={connected} />
+      <SoundToggle />
+
+      {room.phase !== 'finished' ? (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
+          <p className="text-sm text-slate-400">
+            Phòng <span className="font-mono font-black tracking-[0.2em] text-slate-200">{room.code}</span>
+          </p>
+          <div className="flex gap-2">
+            <Link to="/host" className={btnClasses('ghost')}>
+              <ArrowLeft className="h-4 w-4" />
+              Danh sách
+            </Link>
+            <Btn variant="danger" onClick={() => void handleEndRoom()} disabled={busy}>
+              <Square className="h-4 w-4" />
+              Kết thúc ngay
+            </Btn>
+          </div>
+        </div>
+      ) : null}
 
       {actionError ? (
         <div className="mb-4">
@@ -176,7 +251,8 @@ export default function HostRoom() {
               Học sinh vào <span className="font-mono text-slate-200">{joinUrl}</span> hoặc trang chủ rồi nhập mã.
             </p>
             <Btn variant="ghost" className="mt-2" onClick={() => void handleCopy(joinUrl)}>
-              {copied ? '✓ Đã sao chép' : '📋 Sao chép liên kết'}
+              {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <ClipboardCopy className="h-4 w-4" />}
+              {copied ? 'Đã sao chép' : 'Sao chép liên kết'}
             </Btn>
           </div>
 
@@ -189,10 +265,19 @@ export default function HostRoom() {
 
           <div>
             <Btn size="lg" onClick={() => void handleNext()} disabled={busy || players.length === 0}>
-              {busy ? 'Đang bắt đầu...' : players.length === 0 ? 'Chờ học sinh vào phòng...' : '▶ Bắt đầu'}
+              {busy ? (
+                'Đang bắt đầu...'
+              ) : players.length === 0 ? (
+                'Chờ học sinh vào phòng...'
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Bắt đầu
+                </>
+              )}
             </Btn>
             <p className="mt-2 text-xs text-slate-500">
-              Phòng có {room.total_questions} câu hỏi.
+              Phòng có {room.total_questions} câu hỏi · Mẹo: bấm <kbd className="font-mono">Space</kbd> để bắt đầu.
             </p>
           </div>
         </section>
@@ -211,6 +296,7 @@ export default function HostRoom() {
             <p className="text-center text-sm text-slate-400">
               <span className="font-bold text-slate-200">{answeredCount}</span>/{players.length} học sinh đã trả lời
             </p>
+            <PlayerChips players={players} answeredIds={stats?.answeredIds} />
             {question.options.map((option, index) => {
               const count = stats?.counts[index] ?? 0
               const pct = players.length > 0 ? (count / players.length) * 100 : 0
@@ -234,10 +320,17 @@ export default function HostRoom() {
 
           <div className="text-center">
             <Btn size="lg" onClick={() => void handleReveal()} disabled={busy}>
-              {busy ? 'Đang chốt...' : '🔔 Công bố đáp án ngay'}
+              {busy ? (
+                'Đang chốt...'
+              ) : (
+                <>
+                  <BellRing className="h-4 w-4" />
+                  Công bố đáp án ngay
+                </>
+              )}
             </Btn>
             <p className="mt-2 text-xs text-slate-500">
-              Hết giờ hệ thống tự công bố sau ~1 giây. Server vẫn chặn đáp án gửi muộn.
+              Hết giờ hệ thống tự công bố sau ~1 giây · Mẹo: bấm <kbd className="font-mono">Space</kbd> để công bố.
             </p>
           </div>
         </section>
@@ -260,13 +353,20 @@ export default function HostRoom() {
                   key={index}
                   className={cx(
                     'rounded-xl p-3',
-                    isCorrect ? 'border border-emerald-400/60 bg-emerald-500/15' : 'bg-slate-800/70',
+                    isCorrect
+                      ? 'pulse-ring border border-emerald-400/60 bg-emerald-500/15'
+                      : 'bg-slate-800/70',
                   )}
                 >
                   <div className="mb-1 flex items-center gap-2 text-sm">
                     <span className="font-black">{LETTERS[index]}</span>
                     <span className="flex-1 truncate text-slate-200">{option}</span>
-                    {isCorrect ? <span className="text-emerald-300">✓ đúng</span> : null}
+                    {isCorrect ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-300">
+                        <Check className="h-4 w-4" />
+                        đúng
+                      </span>
+                    ) : null}
                     <span className="font-mono">{count}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-slate-900">
@@ -297,7 +397,19 @@ export default function HostRoom() {
 
           <div className="text-center">
             <Btn size="lg" onClick={() => void handleNext()} disabled={busy}>
-              {busy ? 'Đang chuyển...' : isLastQuestion ? '🏁 Kết thúc ván chơi' : '▶ Câu tiếp theo'}
+              {busy ? (
+                'Đang chuyển...'
+              ) : isLastQuestion ? (
+                <>
+                  <Flag className="h-4 w-4" />
+                  Kết thúc ván chơi
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  Câu tiếp theo
+                </>
+              )}
             </Btn>
           </div>
         </section>
@@ -305,7 +417,11 @@ export default function HostRoom() {
 
       {room.phase === 'finished' ? (
         <section className="mx-auto max-w-2xl space-y-6 text-center fade-in">
-          <h1 className="text-3xl font-black">🎉 Kết thúc ván chơi!</h1>
+          <Confetti />
+          <h1 className="flex items-center justify-center gap-3 text-3xl font-black">
+            <PartyPopper className="h-8 w-8 text-amber-300" />
+            Kết thúc ván chơi!
+          </h1>
           <Podium players={players} />
           <div className="text-left">
             <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-400 uppercase">

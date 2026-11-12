@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Giao diện nền sáng — giữ thanh cuộn và control gốc của trình duyệt đồng bộ. */
+html {
+  color-scheme: light;
+}
+
 /* Hiệu ứng dùng chung (Tailwind v4 không có sẵn các keyframes này) */
 @keyframes pop-in {
   from {

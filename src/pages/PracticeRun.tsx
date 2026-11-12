@@ -274,19 +274,19 @@ export default function PracticeRun() {
       {stage === 'config' ? (
         <section className="mx-auto max-w-xl space-y-6 fade-in">
           <div className="text-center">
-            <p className="text-sm tracking-[0.3em] text-slate-400 uppercase">Luyện tập</p>
+            <p className="text-sm tracking-[0.3em] text-slate-500 uppercase">Luyện tập</p>
             <h1 className="mt-1 text-2xl font-black sm:text-3xl">{set.title}</h1>
-            <p className="mt-1 text-sm text-slate-400">{set.questions.length} câu hỏi</p>
+            <p className="mt-1 text-sm text-slate-500">{set.questions.length} câu hỏi</p>
           </div>
 
-          <div className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-5">
+          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/85 p-5">
             <div>
-              <p className="mb-2 text-sm font-medium text-slate-300">Cách chấm điểm</p>
+              <p className="mb-2 text-sm font-medium text-slate-600">Cách chấm điểm</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 <label
                   className={
                     'cursor-pointer rounded-xl border p-3 transition ' +
-                    (instant ? 'border-indigo-400 bg-indigo-500/15' : 'border-slate-600 bg-slate-900')
+                    (instant ? 'border-indigo-300 bg-indigo-50' : 'border-slate-300 bg-white')
                   }
                 >
                   <input
@@ -297,15 +297,15 @@ export default function PracticeRun() {
                     onChange={() => setInstant(true)}
                   />
                   <span className="inline-flex items-center gap-1.5 font-bold">
-                    <Zap className="h-4 w-4 text-amber-300" />
+                    <Zap className="h-4 w-4 text-amber-600" />
                     Chấm ngay
                   </span>
-                  <p className="mt-1 text-xs text-slate-400">Biết đúng/sai sau mỗi câu, kiểu Kahoot.</p>
+                  <p className="mt-1 text-xs text-slate-500">Biết đúng/sai sau mỗi câu, kiểu Kahoot.</p>
                 </label>
                 <label
                   className={
                     'cursor-pointer rounded-xl border p-3 transition ' +
-                    (!instant ? 'border-indigo-400 bg-indigo-500/15' : 'border-slate-600 bg-slate-900')
+                    (!instant ? 'border-indigo-300 bg-indigo-50' : 'border-slate-300 bg-white')
                   }
                 >
                   <input
@@ -316,10 +316,10 @@ export default function PracticeRun() {
                     onChange={() => setInstant(false)}
                   />
                   <span className="inline-flex items-center gap-1.5 font-bold">
-                    <FileText className="h-4 w-4 text-indigo-300" />
+                    <FileText className="h-4 w-4 text-indigo-600" />
                     Chấm cuối bài
                   </span>
-                  <p className="mt-1 text-xs text-slate-400">Làm hết mới xem điểm, kiểu đề thi.</p>
+                  <p className="mt-1 text-xs text-slate-500">Làm hết mới xem điểm, kiểu đề thi.</p>
                 </label>
               </div>
             </div>
@@ -328,7 +328,7 @@ export default function PracticeRun() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-indigo-400"
+                  className="h-4 w-4 accent-indigo-600"
                   checked={shuffleQuestions}
                   onChange={e => setShuffleQuestions(e.target.checked)}
                 />
@@ -337,7 +337,7 @@ export default function PracticeRun() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-indigo-400"
+                  className="h-4 w-4 accent-indigo-600"
                   checked={shuffleOptions}
                   onChange={e => setShuffleOptions(e.target.checked)}
                 />
@@ -346,7 +346,7 @@ export default function PracticeRun() {
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  className="h-4 w-4 accent-indigo-400"
+                  className="h-4 w-4 accent-indigo-600"
                   checked={timed}
                   onChange={e => setTimed(e.target.checked)}
                 />
@@ -356,11 +356,11 @@ export default function PracticeRun() {
 
             {countChoices.length > 1 ? (
               <label className="flex items-center gap-3 text-sm">
-                <span className="text-slate-300">Số câu hỏi</span>
+                <span className="text-slate-600">Số câu hỏi</span>
                 <select
                   value={countChoice}
                   onChange={e => setCountChoice(e.target.value)}
-                  className="rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 outline-none focus:border-indigo-400"
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 outline-none focus:border-indigo-500"
                 >
                   {countChoices.map(value => (
                     <option key={String(value)} value={String(value)}>
@@ -392,13 +392,13 @@ export default function PracticeRun() {
       {/* ----- Làm bài ----- */}
       {stage === 'run' && current ? (
         <section className="mx-auto max-w-3xl space-y-5 fade-in">
-          <div className="flex items-center justify-between gap-3 text-sm text-slate-400">
+          <div className="flex items-center justify-between gap-3 text-sm text-slate-500">
             <span>
-              Câu <span className="font-bold text-slate-200">{cursor + 1}</span>/{items.length}
+              Câu <span className="font-bold text-slate-800">{cursor + 1}</span>/{items.length}
             </span>
             <span>
-              Đúng: <span className="font-bold text-emerald-300">{correctCount}</span> · Sai:{' '}
-              <span className="font-bold text-rose-300">{items.filter(i => i.picked !== null && !i.correct).length}</span>
+              Đúng: <span className="font-bold text-emerald-600">{correctCount}</span> · Sai:{' '}
+              <span className="font-bold text-rose-600">{items.filter(i => i.picked !== null && !i.correct).length}</span>
             </span>
           </div>
 
@@ -408,9 +408,9 @@ export default function PracticeRun() {
               <div className="text-center font-mono text-3xl font-black">{formatClock(msLeft)}</div>
             </>
           ) : (
-            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
+            <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
               <div
-                className="h-full rounded-full bg-indigo-400 transition-[width] duration-300"
+                className="h-full rounded-full bg-indigo-500 transition-[width] duration-300"
                 style={{ width: `${(cursor / items.length) * 100}%` }}
               />
             </div>
@@ -428,17 +428,17 @@ export default function PracticeRun() {
 
           {answered && instant ? (
             current.picked !== null && current.correct ? (
-              <p className="pop-in flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-lg font-bold text-emerald-300">
+              <p className="pop-in flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-lg font-bold text-emerald-600">
                 <Check className="h-5 w-5" />
                 Chính xác!
               </p>
             ) : current.timedOut ? (
-              <p className="pop-in flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-lg font-bold text-amber-200">
+              <p className="pop-in flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-lg font-bold text-amber-700">
                 <Clock className="h-5 w-5" />
                 Hết giờ! Đáp án đúng là {LETTERS[current.correctIndex]}.
               </p>
             ) : (
-              <p className="shake-soft flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-lg font-bold text-rose-300">
+              <p className="shake-soft flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-lg font-bold text-rose-600">
                 <X className="h-5 w-5" />
                 Chưa đúng — đáp án đúng là {LETTERS[current.correctIndex]}.
               </p>
@@ -446,7 +446,7 @@ export default function PracticeRun() {
           ) : null}
 
           {answered && !instant ? (
-            <p className="rounded-xl border border-slate-600 bg-slate-800/70 px-4 py-3 text-center text-sm text-slate-300">
+            <p className="rounded-xl border border-slate-300 bg-white/85 px-4 py-3 text-center text-sm text-slate-600">
               {current.timedOut
                 ? 'Hết giờ — chuyển câu...'
                 : `Đã chọn ${LETTERS[current.picked ?? 0]} — chấm điểm cuối bài.`}
@@ -476,23 +476,23 @@ export default function PracticeRun() {
       {/* ----- Kết quả ----- */}
       {stage === 'result' ? (
         <section className="mx-auto max-w-3xl space-y-6 fade-in">
-          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/70 p-8 text-center">
+          <div className="rounded-2xl border border-slate-200 bg-white/85 p-8 text-center">
             {percent >= 90 ? (
-              <Trophy className="mx-auto h-12 w-12 text-amber-300" />
+              <Trophy className="mx-auto h-12 w-12 text-amber-600" />
             ) : percent >= 70 ? (
-              <PartyPopper className="mx-auto h-12 w-12 text-amber-300" />
+              <PartyPopper className="mx-auto h-12 w-12 text-amber-600" />
             ) : percent >= 50 ? (
-              <ThumbsUp className="mx-auto h-12 w-12 text-indigo-300" />
+              <ThumbsUp className="mx-auto h-12 w-12 text-indigo-600" />
             ) : (
-              <Dumbbell className="mx-auto h-12 w-12 text-indigo-300" />
+              <Dumbbell className="mx-auto h-12 w-12 text-indigo-600" />
             )}
             <h1 className="mt-2 text-3xl font-black">
               {percent >= 90 ? 'Tuyệt vời!' : percent >= 70 ? 'Khá tốt!' : percent >= 50 ? 'Cố thêm nhé!' : 'Cần luyện thêm!'}
             </h1>
-            <p className="mt-3 font-mono text-4xl font-black text-indigo-300">
+            <p className="mt-3 font-mono text-4xl font-black text-indigo-600">
               {correctCount}/{items.length}
             </p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-slate-500">
               {percent}% đúng{skippedCount > 0 ? ` · ${skippedCount} câu hết giờ/bỏ trống` : ''}
             </p>
           </div>
@@ -519,7 +519,7 @@ export default function PracticeRun() {
           </div>
 
           <div>
-            <h2 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            <h2 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-500 uppercase">
               Xem lại từng câu
             </h2>
             <ol className="space-y-4">
@@ -529,16 +529,16 @@ export default function PracticeRun() {
                   className={
                     'rounded-2xl border p-4 ' +
                     (item.correct
-                      ? 'border-emerald-500/40 bg-emerald-500/10'
-                      : 'border-rose-500/40 bg-rose-500/10')
+                      ? 'border-emerald-200 bg-emerald-50'
+                      : 'border-rose-200 bg-rose-50')
                   }
                 >
                   <div className="mb-2 flex items-center justify-between gap-2 text-sm">
-                    <span className="font-bold tracking-widest text-slate-300 uppercase">Câu {index + 1}</span>
+                    <span className="font-bold tracking-widest text-slate-600 uppercase">Câu {index + 1}</span>
                     <span
                       className={
                         'inline-flex items-center gap-1 ' +
-                        (item.correct ? 'font-bold text-emerald-300' : 'font-bold text-rose-300')
+                        (item.correct ? 'font-bold text-emerald-600' : 'font-bold text-rose-600')
                       }
                     >
                       {item.correct ? (
@@ -567,16 +567,16 @@ export default function PracticeRun() {
                         className={
                           'rounded-lg px-3 py-1.5 text-sm ' +
                           (optionIndex === item.correctIndex
-                            ? 'border border-emerald-400/50 bg-emerald-500/20'
-                            : 'bg-slate-900/60 text-slate-300')
+                            ? 'border border-emerald-300 bg-emerald-100'
+                            : 'bg-slate-100 text-slate-600')
                         }
                       >
                         <span className="font-black">{LETTERS[optionIndex]}.</span> {option}
                         {optionIndex === item.correctIndex ? (
-                          <Check className="ml-1 inline h-3.5 w-3.5 text-emerald-300" aria-label="Đáp án đúng" />
+                          <Check className="ml-1 inline h-3.5 w-3.5 text-emerald-600" aria-label="Đáp án đúng" />
                         ) : null}
                         {optionIndex === item.picked && optionIndex !== item.correctIndex ? (
-                          <span className="ml-1 inline-flex items-center gap-1 text-rose-300">
+                          <span className="ml-1 inline-flex items-center gap-1 text-rose-600">
                             <X className="h-3.5 w-3.5" />
                             (em chọn)
                           </span>

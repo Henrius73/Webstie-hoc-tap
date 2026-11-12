@@ -219,9 +219,9 @@ export default function HostRoom() {
       <SoundToggle />
 
       {room.phase !== 'finished' ? (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-700/60 bg-slate-800/50 px-4 py-3">
-          <p className="text-sm text-slate-400">
-            Phòng <span className="font-mono font-black tracking-[0.2em] text-slate-200">{room.code}</span>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/70 px-4 py-3">
+          <p className="text-sm text-slate-500">
+            Phòng <span className="font-mono font-black tracking-[0.2em] text-slate-800">{room.code}</span>
           </p>
           <div className="flex gap-2">
             <Link to="/host" className={btnClasses('ghost')}>
@@ -245,19 +245,19 @@ export default function HostRoom() {
       {room.phase === 'lobby' ? (
         <section className="mx-auto max-w-2xl space-y-8 text-center fade-in">
           <div>
-            <p className="text-sm tracking-[0.3em] text-slate-400 uppercase">Mã phòng — chiếu lên bảng</p>
+            <p className="text-sm tracking-[0.3em] text-slate-500 uppercase">Mã phòng — chiếu lên bảng</p>
             <p className="my-4 font-mono text-7xl font-black tracking-[0.2em] sm:text-8xl">{room.code}</p>
-            <p className="text-slate-400">
-              Học sinh vào <span className="font-mono text-slate-200">{joinUrl}</span> hoặc trang chủ rồi nhập mã.
+            <p className="text-slate-500">
+              Học sinh vào <span className="font-mono text-slate-800">{joinUrl}</span> hoặc trang chủ rồi nhập mã.
             </p>
             <Btn variant="ghost" className="mt-2" onClick={() => void handleCopy(joinUrl)}>
-              {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <ClipboardCopy className="h-4 w-4" />}
+              {copied ? <Check className="h-4 w-4 text-emerald-600" /> : <ClipboardCopy className="h-4 w-4" />}
               {copied ? 'Đã sao chép' : 'Sao chép liên kết'}
             </Btn>
           </div>
 
           <div>
-            <h2 className="mb-3 text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            <h2 className="mb-3 text-sm font-semibold tracking-widest text-slate-500 uppercase">
               {players.length} học sinh trong phòng
             </h2>
             <PlayerChips players={players} />
@@ -285,7 +285,7 @@ export default function HostRoom() {
 
       {room.phase === 'question' && question ? (
         <section className="mx-auto max-w-3xl space-y-5 fade-in">
-          <div className="text-center text-sm text-slate-400">
+          <div className="text-center text-sm text-slate-500">
             Câu {room.q_index + 1}/{room.total_questions}
           </div>
           <TimerBar msLeft={msLeft} totalMs={question.time_limit * 1000} />
@@ -293,23 +293,23 @@ export default function HostRoom() {
           <QuestionBlock text={question.text} imageUrl={question.image_url} />
 
           <div className="space-y-2">
-            <p className="text-center text-sm text-slate-400">
-              <span className="font-bold text-slate-200">{answeredCount}</span>/{players.length} học sinh đã trả lời
+            <p className="text-center text-sm text-slate-500">
+              <span className="font-bold text-slate-800">{answeredCount}</span>/{players.length} học sinh đã trả lời
             </p>
             <PlayerChips players={players} answeredIds={stats?.answeredIds} />
             {question.options.map((option, index) => {
               const count = stats?.counts[index] ?? 0
               const pct = players.length > 0 ? (count / players.length) * 100 : 0
               return (
-                <div key={index} className="rounded-xl bg-slate-800/70 p-3">
+                <div key={index} className="rounded-xl bg-white/85 p-3">
                   <div className="mb-1 flex items-center gap-2 text-sm">
                     <span className="font-black">{LETTERS[index]}</span>
-                    <span className="flex-1 truncate text-slate-300">{option}</span>
+                    <span className="flex-1 truncate text-slate-600">{option}</span>
                     <span className="font-mono">{count}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-900">
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className="h-full rounded-full bg-indigo-400 transition-[width] duration-300"
+                      className="h-full rounded-full bg-indigo-500 transition-[width] duration-300"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -338,7 +338,7 @@ export default function HostRoom() {
 
       {room.phase === 'reveal' && question ? (
         <section className="mx-auto max-w-3xl space-y-5 fade-in">
-          <div className="text-center text-sm text-slate-400">
+          <div className="text-center text-sm text-slate-500">
             Câu {room.q_index + 1}/{room.total_questions}
           </div>
           <QuestionBlock text={question.text} imageUrl={question.image_url} />
@@ -354,26 +354,26 @@ export default function HostRoom() {
                   className={cx(
                     'rounded-xl p-3',
                     isCorrect
-                      ? 'pulse-ring border border-emerald-400/60 bg-emerald-500/15'
-                      : 'bg-slate-800/70',
+                      ? 'pulse-ring border border-emerald-300 bg-emerald-50'
+                      : 'bg-white/85',
                   )}
                 >
                   <div className="mb-1 flex items-center gap-2 text-sm">
                     <span className="font-black">{LETTERS[index]}</span>
-                    <span className="flex-1 truncate text-slate-200">{option}</span>
+                    <span className="flex-1 truncate text-slate-800">{option}</span>
                     {isCorrect ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-300">
+                      <span className="inline-flex items-center gap-1 text-emerald-600">
                         <Check className="h-4 w-4" />
                         đúng
                       </span>
                     ) : null}
                     <span className="font-mono">{count}</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-slate-900">
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
                     <div
                       className={cx(
                         'h-full rounded-full transition-[width] duration-300',
-                        isCorrect ? 'bg-emerald-400' : 'bg-indigo-400',
+                        isCorrect ? 'bg-emerald-500' : 'bg-indigo-500',
                       )}
                       style={{ width: `${pct}%` }}
                     />
@@ -383,13 +383,13 @@ export default function HostRoom() {
             })}
           </div>
 
-          <p className="text-center text-sm text-slate-300">
+          <p className="text-center text-sm text-slate-600">
             Trả lời đúng:{' '}
-            <span className="font-bold text-emerald-300">{stats?.correctCount ?? 0}</span>/{players.length} học sinh
+            <span className="font-bold text-emerald-600">{stats?.correctCount ?? 0}</span>/{players.length} học sinh
           </p>
 
           <div>
-            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-500 uppercase">
               Bảng xếp hạng
             </h3>
             <Leaderboard players={players} limit={5} />
@@ -419,12 +419,12 @@ export default function HostRoom() {
         <section className="mx-auto max-w-2xl space-y-6 text-center fade-in">
           <Confetti />
           <h1 className="flex items-center justify-center gap-3 text-3xl font-black">
-            <PartyPopper className="h-8 w-8 text-amber-300" />
+            <PartyPopper className="h-8 w-8 text-amber-600" />
             Kết thúc ván chơi!
           </h1>
           <Podium players={players} />
           <div className="text-left">
-            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-500 uppercase">
               Tổng hợp điểm từng học sinh
             </h3>
             <Leaderboard players={players} />

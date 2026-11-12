@@ -110,10 +110,10 @@ export function ExcelImportSection({
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 font-bold">
-            <FileSpreadsheet className="h-5 w-5 text-emerald-300" />
+            <FileSpreadsheet className="h-5 w-5 text-emerald-600" />
             Nhập câu hỏi từ Excel
           </h2>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Hỗ trợ .xlsx và .xls · tối đa {formatSize(MAX_EXCEL_BYTES)} · mỗi dòng một câu hỏi.
           </p>
         </div>
@@ -144,20 +144,20 @@ export function ExcelImportSection({
         className={cx(
           'flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-4 py-8 text-center outline-none transition',
           dragging
-            ? 'border-indigo-400 bg-indigo-500/10'
-            : 'border-slate-600 bg-slate-900/40 hover:border-indigo-400/70 hover:bg-slate-900/70',
-          'focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-500/30',
+            ? 'border-indigo-300 bg-indigo-50'
+            : 'border-slate-300 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50',
+          'focus-visible:border-indigo-300 focus-visible:ring-2 focus-visible:ring-indigo-500/30',
         )}
       >
         {parsing ? (
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-300" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         ) : (
-          <Upload className="h-8 w-8 text-indigo-300" />
+          <Upload className="h-8 w-8 text-indigo-600" />
         )}
         <p className="font-semibold">
           {parsing ? 'Đang đọc tệp...' : fileName ? fileName : 'Kéo tệp Excel vào đây'}
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-500">
           {parsing
             ? 'Vui lòng chờ trong giây lát.'
             : fileName
@@ -174,23 +174,23 @@ export function ExcelImportSection({
       </div>
 
       {fileError ? (
-        <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <p className="mt-3 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
           {fileError}
         </p>
       ) : null}
 
       {result && result.questions.length > 0 && !hasErrors ? (
-        <div className="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-200">
+        <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+          <p className="flex items-center gap-2 text-sm font-semibold text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />
             Đọc được {result.questions.length} câu hỏi
-            {result.sheetName ? <span className="font-normal text-emerald-200/70">· trang “{result.sheetName}”</span> : null}
+            {result.sheetName ? <span className="font-normal text-emerald-700/70">· trang “{result.sheetName}”</span> : null}
           </p>
-          <ul className="mt-2 space-y-1 text-xs text-slate-300">
+          <ul className="mt-2 space-y-1 text-xs text-slate-600">
             {result.questions.slice(0, 3).map((question, index) => (
               <li key={index} className="truncate">
-                <span className="font-semibold text-slate-200">Câu {index + 1}:</span> {question.text}
+                <span className="font-semibold text-slate-800">Câu {index + 1}:</span> {question.text}
                 <span className="text-slate-500">
                   {' '}
                   · đáp án {LETTERS[question.correctIndex]} · {question.timeLimit} giây
@@ -215,7 +215,7 @@ export function ExcelImportSection({
       ) : null}
 
       {hasErrors && result ? (
-        <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-200">
+        <div className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           <p className="mb-2 flex items-center gap-2 font-semibold">
             <CircleAlert className="h-4 w-4" />
             Tệp có {result.errors.length} dòng chưa hợp lệ
@@ -233,7 +233,7 @@ export function ExcelImportSection({
               <RotateCcw className="h-4 w-4" />
               Chọn tệp khác
             </Btn>
-            <span className="text-xs text-rose-200/80">
+            <span className="text-xs text-rose-700/80">
               Sửa các dòng lỗi trong tệp rồi chọn lại — chưa có câu nào được thêm.
             </span>
           </div>

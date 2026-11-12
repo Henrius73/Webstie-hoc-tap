@@ -94,16 +94,16 @@ function TeacherLogin({
     <PageShell>
       <section className="mx-auto max-w-md fade-in">
         <div className="mb-6 text-center">
-          <GraduationCap className="mx-auto mb-3 h-12 w-12 text-indigo-300" />
+          <GraduationCap className="mx-auto mb-3 h-12 w-12 text-indigo-600" />
           <h1 className="text-3xl font-black">Giáo viên đăng nhập</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="mt-2 text-sm text-slate-500">
             Nhập email để nhận liên kết đăng nhập. Bộ câu hỏi sẽ được lưu vào tài khoản của thầy/cô.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className={`${cardClasses} space-y-4 p-6 shadow-xl`}>
           <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-300">Email</span>
+            <span className="mb-1 block text-sm font-medium text-slate-600">Email</span>
             <input
               type="email"
               value={email}
@@ -116,13 +116,13 @@ function TeacherLogin({
           </label>
 
           {error ? (
-            <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {error}
             </p>
           ) : null}
 
           {sent ? (
-            <div className="space-y-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               <p className="inline-flex items-center gap-2 font-semibold">
                 <MailCheck className="h-4 w-4" />
                 Đã gửi liên kết đăng nhập!
@@ -249,12 +249,12 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
     <PageShell>
       <header className={`${cardClasses} mb-8 flex flex-wrap items-center justify-between gap-4 p-5 fade-in`}>
         <div>
-          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-indigo-300 uppercase">
+          <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-indigo-600 uppercase">
             <Presentation className="h-4 w-4" />
             Khu vực giáo viên
           </p>
           <h1 className="text-2xl font-black sm:text-3xl">Bộ câu hỏi của thầy/cô</h1>
-          <p className="text-sm text-slate-400">{email}</p>
+          <p className="text-sm text-slate-500">{email}</p>
         </div>
         <Btn variant="ghost" onClick={onSignOut}>
           <LogOut className="h-4 w-4" />
@@ -295,14 +295,14 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
             {activeRooms.map(room => (
               <li
                 key={room.id}
-                className="flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-4"
+                className="flex flex-wrap items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4"
               >
-                <span className="font-mono text-2xl font-black tracking-[0.2em] text-indigo-200">
+                <span className="font-mono text-2xl font-black tracking-[0.2em] text-indigo-700">
                   {room.code}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{room.quizTitle}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {room.playerCount} học sinh · {roomPhaseLabel(room)} · mở lúc{' '}
                     {new Date(room.createdAt).toLocaleTimeString('vi-VN', {
                       hour: '2-digit',
@@ -335,11 +335,11 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
             {quizzes.map(quiz => (
               <li
                 key={quiz.id}
-                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-400/40 hover:bg-slate-800`}
+                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-300 hover:shadow-md`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{quiz.title}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {quiz.count} câu hỏi · tạo ngày {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
                   </p>
                 </div>

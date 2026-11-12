@@ -174,10 +174,10 @@ export default function DemoStudentRoom() {
           <h1 className="mb-2 text-center text-2xl font-black">
             Phòng <span className="font-mono tracking-widest">{room.code}</span>
           </h1>
-          <p className="mb-6 text-center text-sm text-slate-400">Nhập tên của em để vào phòng.</p>
+          <p className="mb-6 text-center text-sm text-slate-500">Nhập tên của em để vào phòng.</p>
           <form
             onSubmit={handleJoin}
-            className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-6 shadow-xl"
+            className="space-y-4 rounded-2xl border border-slate-200 bg-white/85 p-6 shadow-xl"
           >
             <input
               value={joinName}
@@ -186,10 +186,10 @@ export default function DemoStudentRoom() {
               autoComplete="nickname"
               placeholder="Tên của em"
               disabled={joining}
-              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-lg outline-none focus:border-indigo-400 disabled:opacity-50"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg outline-none focus:border-indigo-500 disabled:opacity-50"
             />
             {notice ? (
-              <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {notice}
               </p>
             ) : null}
@@ -212,7 +212,7 @@ export default function DemoStudentRoom() {
       <SoundToggle />
 
       {notice ? (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice(null)} className="underline">
             Đóng
@@ -222,11 +222,11 @@ export default function DemoStudentRoom() {
 
       {room.phase === 'lobby' ? (
         <section className="mx-auto max-w-2xl text-center fade-in">
-          <p className="text-sm tracking-[0.3em] text-slate-400 uppercase">Mã phòng</p>
+          <p className="text-sm tracking-[0.3em] text-slate-500 uppercase">Mã phòng</p>
           <p className="my-4 font-mono text-6xl font-black tracking-[0.25em] sm:text-7xl">{room.code}</p>
           <p className="mb-6 flex flex-wrap items-center justify-center gap-2 text-lg">
-            Chào <span className="font-bold text-indigo-300">{me.name}</span>!
-            <span className="blink-soft inline-flex items-center gap-1 text-slate-400">
+            Chào <span className="font-bold text-indigo-600">{me.name}</span>!
+            <span className="blink-soft inline-flex items-center gap-1 text-slate-500">
               <Hourglass className="h-4 w-4" />
               Chờ giáo viên bắt đầu...
             </span>
@@ -238,18 +238,18 @@ export default function DemoStudentRoom() {
 
       {room.phase === 'question' && question ? (
         <section className="mx-auto max-w-3xl space-y-5 fade-in">
-          <div className="text-center text-sm text-slate-400">
+          <div className="text-center text-sm text-slate-500">
             Câu {room.q_index + 1}/{room.total_questions}
           </div>
           <TimerBar msLeft={msLeft} totalMs={question.time_limit * 1000} />
           <div className="text-center font-mono text-3xl font-black">{formatClock(msLeft)}</div>
           <QuestionBlock text={question.text} imageUrl={question.image_url} />
           {myAnswer ? (
-            <p className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-emerald-200">
+            <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-emerald-700">
               Đã gửi đáp án <strong>{LETTERS[myAnswer.choice]}</strong> — chờ cả lớp trả lời xong nhé!
             </p>
           ) : msLeft <= 0 ? (
-            <p className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-amber-200">
+            <p className="flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-amber-700">
               <TimerOff className="h-4 w-4" />
               Đã hết giờ — chờ thầy/cô công bố đáp án nhé!
             </p>
@@ -264,7 +264,7 @@ export default function DemoStudentRoom() {
 
       {room.phase === 'reveal' && question ? (
         <section className="mx-auto max-w-3xl space-y-5 fade-in">
-          <div className="text-center text-sm text-slate-400">
+          <div className="text-center text-sm text-slate-500">
             Câu {room.q_index + 1}/{room.total_questions}
           </div>
           <QuestionBlock text={question.text} imageUrl={question.image_url} />
@@ -275,27 +275,27 @@ export default function DemoStudentRoom() {
           />
           {myAnswer ? (
             myAnswer.is_correct ? (
-              <p className="pop-in rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-center text-lg font-bold text-emerald-300">
+              <p className="pop-in rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-lg font-bold text-emerald-600">
                 Chính xác! +{myAnswer.points} điểm
               </p>
             ) : (
-              <p className="shake-soft rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-center text-lg font-bold text-rose-300">
+              <p className="shake-soft rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-lg font-bold text-rose-600">
                 Chưa đúng lần này, thử câu sau nhé!
               </p>
             )
           ) : (
-            <p className="rounded-xl border border-slate-600 bg-slate-800/70 px-4 py-3 text-center text-slate-300">
+            <p className="rounded-xl border border-slate-300 bg-white/85 px-4 py-3 text-center text-slate-600">
               Em chưa kịp trả lời câu này.
             </p>
           )}
 
           <div>
-            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            <h3 className="mb-2 text-center text-sm font-semibold tracking-widest text-slate-500 uppercase">
               Bảng xếp hạng
             </h3>
             <Leaderboard players={players} meId={me.id} limit={5} />
           </div>
-          <p className="blink-soft text-center text-sm text-slate-400">Chờ câu tiếp theo...</p>
+          <p className="blink-soft text-center text-sm text-slate-500">Chờ câu tiếp theo...</p>
         </section>
       ) : null}
 
@@ -303,13 +303,13 @@ export default function DemoStudentRoom() {
         <section className="mx-auto max-w-2xl space-y-6 text-center fade-in">
           <Confetti />
           <h1 className="flex items-center justify-center gap-3 text-3xl font-black">
-            <PartyPopper className="h-8 w-8 text-amber-300" />
+            <PartyPopper className="h-8 w-8 text-amber-600" />
             Kết thúc ván chơi!
           </h1>
           <Podium players={players} />
           <p className="flex flex-wrap items-center justify-center gap-2 text-lg">
-            <Trophy className="h-5 w-5 text-amber-300" />
-            Em đạt <span className="font-black text-indigo-300">{me.score} điểm</span>
+            <Trophy className="h-5 w-5 text-amber-600" />
+            Em đạt <span className="font-black text-indigo-600">{me.score} điểm</span>
             {myRank > 0 ? <span>— hạng {myRank}/{players.length}</span> : null}
           </p>
           <Leaderboard players={players} meId={me.id} />

@@ -72,18 +72,18 @@ export default function Join() {
     <PageShell>
       <section className="mx-auto max-w-4xl fade-in">
         <div className="mb-8 text-center">
-          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-indigo-400/30 bg-indigo-500/15 text-indigo-300">
+          <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600">
             <Gamepad2 className="h-7 w-7" />
           </span>
           <h1 className="text-3xl font-black sm:text-4xl">Vào phòng chơi</h1>
-          <p className="mt-2 text-sm text-slate-400">Nhập mã phòng do giáo viên chiếu trên bảng để bắt đầu.</p>
+          <p className="mt-2 text-sm text-slate-500">Nhập mã phòng do giáo viên chiếu trên bảng để bắt đầu.</p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <div>
             <form onSubmit={handleSubmit} className={`${cardClasses} space-y-4 p-6`}>
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-300">Mã phòng (6 chữ số)</span>
+                <span className="mb-1 block text-sm font-medium text-slate-600">Mã phòng (6 chữ số)</span>
                 <input
                   value={code}
                   onChange={e => setCode(e.target.value)}
@@ -97,7 +97,7 @@ export default function Join() {
               </label>
 
               <label className="block">
-                <span className="mb-1 block text-sm font-medium text-slate-300">Tên của em</span>
+                <span className="mb-1 block text-sm font-medium text-slate-600">Tên của em</span>
                 <input
                   value={name}
                   onChange={e => setName(e.target.value)}
@@ -110,7 +110,7 @@ export default function Join() {
               </label>
 
               {error ? (
-                <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                   {error}
                 </p>
               ) : null}
@@ -125,12 +125,12 @@ export default function Join() {
             </form>
 
             {!isConfigured ? (
-              <div className="mt-4 rounded-2xl border border-indigo-400/40 bg-indigo-500/10 p-4 text-sm">
-                <p className="mb-1 inline-flex items-center gap-2 font-semibold text-indigo-200">
+              <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm">
+                <p className="mb-1 inline-flex items-center gap-2 font-semibold text-indigo-700">
                   <MonitorSmartphone className="h-4 w-4" />
                   Chế độ chơi thử
                 </p>
-                <p className="mb-3 text-slate-300">
+                <p className="mb-3 text-slate-600">
                   Chưa kết nối máy chủ dữ liệu. Giáo viên có thể tạo phòng thử ngay trên máy này.
                 </p>
                 <Link to="/demo" className={btnClasses('ghost')}>
@@ -143,25 +143,25 @@ export default function Join() {
 
           <aside className="space-y-4">
             <div className={`${cardClasses} p-5`}>
-              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-slate-300 uppercase">
-                <ListOrdered className="h-4 w-4 text-indigo-300" />
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-widest text-slate-600 uppercase">
+                <ListOrdered className="h-4 w-4 text-indigo-600" />
                 Cách vào phòng
               </h2>
-              <ol className="space-y-3 text-sm text-slate-300">
+              <ol className="space-y-3 text-sm text-slate-600">
                 <li className="flex gap-2.5">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-500/20 text-xs font-black text-indigo-200">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">
                     1
                   </span>
                   Nhập mã 6 số giáo viên chiếu trên bảng.
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-500/20 text-xs font-black text-indigo-200">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">
                     2
                   </span>
                   Nhập tên của em — không cần tài khoản.
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-500/20 text-xs font-black text-indigo-200">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-indigo-100 text-xs font-black text-indigo-700">
                     3
                   </span>
                   Chờ giáo viên bắt đầu và chọn đáp án thật nhanh.
@@ -169,9 +169,9 @@ export default function Join() {
               </ol>
             </div>
 
-            <div className={`${cardClasses} p-5 text-sm text-slate-400`}>
-              <p className="mb-1 flex items-center gap-2 font-semibold text-slate-300">
-                <Info className="h-4 w-4 text-sky-300" />
+            <div className={`${cardClasses} p-5 text-sm text-slate-500`}>
+              <p className="mb-1 flex items-center gap-2 font-semibold text-slate-600">
+                <Info className="h-4 w-4 text-sky-600" />
                 Lưu ý
               </p>
               <p>Điểm được chấm theo độ chính xác và tốc độ trả lời. Đáp án đúng chỉ hiện sau khi hết giờ.</p>
@@ -179,9 +179,9 @@ export default function Join() {
           </aside>
         </div>
 
-        <p className="mt-8 text-center text-sm text-slate-400">
+        <p className="mt-8 text-center text-sm text-slate-500">
           Là giáo viên?{' '}
-          <Link to="/host" className="text-indigo-300 underline hover:text-indigo-200">
+          <Link to="/host" className="text-indigo-600 underline hover:text-indigo-700">
             Vào trang giáo viên
           </Link>
         </p>

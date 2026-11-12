@@ -50,11 +50,11 @@ export default function Practice() {
   return (
     <PageShell>
       <section className="mb-8 text-center fade-in">
-        <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-indigo-400/30 bg-indigo-500/15 text-indigo-300">
+        <span className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl border border-indigo-200 bg-indigo-50 text-indigo-600">
           <BookOpen className="h-7 w-7" />
         </span>
         <h1 className="text-3xl font-black sm:text-4xl">Luyện tập</h1>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-slate-400">
+        <p className="mx-auto mt-2 max-w-xl text-sm text-slate-500">
           Tự soạn bộ câu hỏi và luyện ngay trên máy này — kiểu đề thi thông thường, có xem lại từng câu và thẻ ghi
           nhớ. <span className="text-slate-500">Dữ liệu lưu trong trình duyệt, không cần mạng hay tài khoản.</span>
         </p>
@@ -101,11 +101,11 @@ export default function Practice() {
             return (
               <li
                 key={set.id}
-                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-400/40 hover:bg-slate-800`}
+                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-300 hover:shadow-md`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">{set.title}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {set.questions.length} câu hỏi
                     {result
                       ? ` · lần gần nhất ${result.last.correct}/${result.last.total} · tốt nhất ${Math.round(

@@ -113,22 +113,22 @@ export default function PracticeFlash() {
     <PageShell>
       <section className="mx-auto max-w-2xl space-y-6">
         <div className="text-center fade-in">
-          <p className="text-sm tracking-[0.3em] text-slate-400 uppercase">Thẻ ghi nhớ</p>
+          <p className="text-sm tracking-[0.3em] text-slate-500 uppercase">Thẻ ghi nhớ</p>
           <h1 className="mt-1 text-2xl font-black sm:text-3xl">{set.title}</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-500">
             {started ? `Còn ${deck.length} thẻ · đã thuộc ${knownCount}` : `${set.questions.length} thẻ`}
           </p>
         </div>
 
         {!started ? (
-          <div className="space-y-4 rounded-2xl border border-slate-700/60 bg-slate-800/70 p-6 text-center">
-            <p className="text-sm text-slate-300">
+          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white/85 p-6 text-center">
+            <p className="text-sm text-slate-600">
               Xem câu hỏi, tự nhủ đáp án, rồi lật thẻ để kiểm tra. Thẻ nào "chưa nhớ" sẽ quay lại cuối hàng.
             </p>
             <label className="flex items-center justify-center gap-2 text-sm">
               <input
                 type="checkbox"
-                className="h-4 w-4 accent-indigo-400"
+                className="h-4 w-4 accent-indigo-600"
                 checked={shuffle}
                 onChange={e => setShuffle(e.target.checked)}
               />
@@ -140,8 +140,8 @@ export default function PracticeFlash() {
             </Btn>
           </div>
         ) : deck.length === 0 ? (
-          <div className="space-y-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-8 text-center">
-            <PartyPopper className="mx-auto mb-2 h-12 w-12 text-amber-300" />
+          <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
+            <PartyPopper className="mx-auto mb-2 h-12 w-12 text-amber-600" />
             <h2 className="text-2xl font-black">Bạn đã thuộc hết {knownCount} thẻ!</h2>
             <div className="flex flex-wrap justify-center gap-3">
               <Btn onClick={() => restart()}>
@@ -158,20 +158,20 @@ export default function PracticeFlash() {
           <div className="space-y-4">
             <div
               onClick={flip}
-              className="cursor-pointer select-none rounded-2xl border border-slate-700/60 bg-slate-800/80 p-8 text-center shadow-xl transition hover:border-indigo-400/60"
+              className="cursor-pointer select-none rounded-2xl border border-slate-200 bg-white/90 p-8 text-center shadow-xl transition hover:border-indigo-300"
             >
               {flipped ? (
                 <div className="pop-in">
-                  <p className="mb-2 text-xs font-semibold tracking-widest text-emerald-300 uppercase">
+                  <p className="mb-2 text-xs font-semibold tracking-widest text-emerald-600 uppercase">
                     Đáp án đúng
                   </p>
-                  <p className="text-2xl font-black text-emerald-200">
+                  <p className="text-2xl font-black text-emerald-700">
                     {LETTERS[current.correctIndex]}. {current.options[current.correctIndex]}
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p className="mb-2 text-xs font-semibold tracking-widest text-slate-400 uppercase">
+                  <p className="mb-2 text-xs font-semibold tracking-widest text-slate-500 uppercase">
                     Câu hỏi — chớp rồi mới lật
                   </p>
                   <p className="text-xl font-bold sm:text-2xl">{current.text}</p>
@@ -196,7 +196,7 @@ export default function PracticeFlash() {
         ) : null}
 
         {started ? (
-          <p className="text-center text-sm text-slate-400">
+          <p className="text-center text-sm text-slate-500">
             <button type="button" className="underline" onClick={() => restart()}>
               Luyện lại từ đầu
             </button>

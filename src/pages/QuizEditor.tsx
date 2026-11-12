@@ -207,9 +207,9 @@ export default function QuizEditor() {
           </div>
         </div>
         {dirty ? (
-          <p className="mt-2 text-xs text-amber-300">Có thay đổi chưa lưu (*)</p>
+          <p className="mt-2 text-xs text-amber-600">Có thay đổi chưa lưu (*)</p>
         ) : notice ? (
-          <p className="mt-2 text-xs text-emerald-300">{notice}</p>
+          <p className="mt-2 text-xs text-emerald-600">{notice}</p>
         ) : (
           <p className="mt-2 text-xs text-slate-500">
             {drafts.length} câu hỏi · mỗi câu đúng 4 đáp án, chọn 1 đáp án đúng, thời gian 5–300 giây
@@ -262,7 +262,7 @@ export default function QuizEditor() {
         <ol className="space-y-4">
           {drafts.map((question, index) =>
             editingIndex === index ? (
-              <li key={index} className="rounded-2xl border border-indigo-400/50 bg-indigo-500/10 p-4">
+              <li key={index} className="rounded-2xl border border-indigo-300 bg-indigo-50 p-4">
                 <QuestionForm
                   initial={question}
                   submitLabel="Lưu câu hỏi"
@@ -273,7 +273,7 @@ export default function QuizEditor() {
             ) : (
               <li key={index} className={`${cardClasses} p-4`}>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-xs font-bold tracking-widest text-slate-400 uppercase">
+                  <span className="text-xs font-bold tracking-widest text-slate-500 uppercase">
                     Câu {index + 1}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -312,13 +312,13 @@ export default function QuizEditor() {
                       key={optionIndex}
                       className={
                         optionIndex === question.correctIndex
-                          ? 'rounded-lg border border-emerald-400/50 bg-emerald-500/15 px-3 py-1.5 text-sm'
-                          : 'rounded-lg bg-slate-900/60 px-3 py-1.5 text-sm text-slate-300'
+                          ? 'rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm'
+                          : 'rounded-lg bg-slate-100 px-3 py-1.5 text-sm text-slate-600'
                       }
                     >
                       <span className="font-black">{LETTERS[optionIndex]}.</span> {option}
                       {optionIndex === question.correctIndex ? (
-                        <Check className="ml-1 inline h-3.5 w-3.5 text-emerald-300" aria-label="Đáp án đúng" />
+                        <Check className="ml-1 inline h-3.5 w-3.5 text-emerald-600" aria-label="Đáp án đúng" />
                       ) : null}
                     </li>
                   ))}

@@ -21,32 +21,32 @@ import type { PlayerRow } from '../types/db'
 export const LETTERS = ['A', 'B', 'C', 'D']
 
 // Lớp dùng chung để các trang có cùng nhịp điệu thị giác.
-export const cardClasses = 'rounded-2xl border border-slate-700/60 bg-slate-800/70 shadow-sm'
+export const cardClasses = 'rounded-2xl border border-slate-200 bg-white/90 shadow-sm shadow-slate-200/60'
 export const fieldClasses =
-  'w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-2.5 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/25 disabled:opacity-50'
-export const sectionLabelClasses = 'text-xs font-semibold tracking-widest text-slate-400 uppercase'
+  'w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50'
+export const sectionLabelClasses = 'text-xs font-semibold tracking-widest text-slate-500 uppercase'
 
 export function PageShell({ children }: { children: ReactNode }) {
   const location = useLocation()
   const isHome = location.pathname === '/'
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950 text-slate-100">
+    <div className="min-h-dvh bg-gradient-to-b from-sky-50 via-white to-indigo-100 text-slate-900">
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:py-10">
         {isHome ? null : (
           <nav className="mb-8 flex items-center justify-between gap-3">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 text-sm font-black tracking-tight text-slate-200 transition hover:text-white"
+              className="inline-flex items-center gap-2 text-sm font-black tracking-tight text-slate-800 transition hover:text-indigo-600"
             >
-              <span className="grid h-8 w-8 place-items-center rounded-xl border border-indigo-400/30 bg-indigo-500/15 text-indigo-300">
+              <span className="grid h-8 w-8 place-items-center rounded-xl border border-indigo-200 bg-indigo-100 text-indigo-600">
                 <GraduationCap className="h-4 w-4" />
               </span>
               Học Vui
             </Link>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-700"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100"
             >
               <HomeIcon className="h-3.5 w-3.5" />
               Trang chủ
@@ -63,8 +63,8 @@ type Variant = 'primary' | 'ghost' | 'danger'
 type Size = 'md' | 'lg'
 
 const VARIANT_STYLES: Record<Variant, string> = {
-  primary: 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 hover:bg-indigo-400',
-  ghost: 'border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700',
+  primary: 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500',
+  ghost: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100',
   danger: 'bg-rose-600 text-white hover:bg-rose-500',
 }
 
@@ -76,7 +76,7 @@ const SIZE_STYLES: Record<Size, string> = {
 export function btnClasses(variant: Variant = 'primary', size: Size = 'md'): string {
   return cx(
     'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl font-semibold transition',
-    'focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 focus-visible:outline-none',
+    'focus-visible:ring-2 focus-visible:ring-indigo-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none',
     'active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 disabled:active:translate-y-0',
     VARIANT_STYLES[variant],
     SIZE_STYLES[size],
@@ -94,8 +94,8 @@ export function Btn({ variant = 'primary', size = 'md', className, type = 'butto
 
 export function Spinner({ label = 'Đang tải...' }: { label?: string }) {
   return (
-    <div className="flex flex-col items-center gap-3 py-20 text-slate-400">
-      <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-600 border-t-indigo-400" />
+    <div className="flex flex-col items-center gap-3 py-20 text-slate-500">
+      <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-500" />
       <p className="text-sm">{label}</p>
     </div>
   )
@@ -111,10 +111,10 @@ export function ErrorCard({
   onRetry?: () => void
 }) {
   return (
-    <section className="mx-auto max-w-md rounded-2xl border border-rose-500/40 bg-rose-500/10 p-6 text-center fade-in">
-      <CircleAlert className="mx-auto mb-3 h-10 w-10 text-rose-300" />
-      <h2 className="mb-2 text-lg font-bold text-rose-200">{title}</h2>
-      <p className="mb-4 text-sm text-slate-300">{message}</p>
+    <section className="mx-auto max-w-md rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center fade-in">
+      <CircleAlert className="mx-auto mb-3 h-10 w-10 text-rose-600" />
+      <h2 className="mb-2 text-lg font-bold text-rose-700">{title}</h2>
+      <p className="mb-4 text-sm text-slate-600">{message}</p>
       {onRetry ? (
         <Btn variant="ghost" onClick={onRetry}>
           Thử lại
@@ -137,11 +137,11 @@ export function EmptyState({
 }) {
   return (
     <div className={cx(cardClasses, 'px-6 py-10 text-center fade-in')}>
-      <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-slate-900/70 text-indigo-300">
+      <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">
         <Icon className="h-6 w-6" />
       </span>
-      <p className="font-bold text-slate-100">{title}</p>
-      {description ? <p className="mx-auto mt-1 max-w-md text-sm text-slate-400">{description}</p> : null}
+      <p className="font-bold text-slate-900">{title}</p>
+      {description ? <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{description}</p> : null}
       {children ? <div className="mt-4 flex flex-wrap justify-center gap-2">{children}</div> : null}
     </div>
   )
@@ -152,11 +152,11 @@ export function ConnectionBadge({ connected }: { connected: boolean }) {
     <div
       className={cx(
         'fixed right-3 bottom-3 z-50 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium shadow-lg',
-        connected ? 'bg-emerald-500/15 text-emerald-300' : 'blink-soft bg-rose-500/15 text-rose-300',
+        connected ? 'bg-emerald-50 text-emerald-700' : 'blink-soft bg-rose-50 text-rose-700',
       )}
       role="status"
     >
-      <span className={cx('h-2 w-2 rounded-full', connected ? 'bg-emerald-400' : 'bg-rose-400')} />
+      <span className={cx('h-2 w-2 rounded-full', connected ? 'bg-emerald-500' : 'bg-rose-400')} />
       {connected ? 'Realtime' : 'Mất kết nối, đang thử lại...'}
     </div>
   )
@@ -173,7 +173,7 @@ export function SoundToggle() {
         setSoundEnabled(next)
         if (next) play('join')
       }}
-      className="fixed bottom-3 left-3 z-50 inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg hover:bg-slate-700"
+      className="fixed bottom-3 left-3 z-50 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-lg hover:bg-slate-100"
       aria-label={on ? 'Tắt âm thanh' : 'Bật âm thanh'}
       title={on ? 'Tắt âm thanh' : 'Bật âm thanh'}
     >
@@ -233,7 +233,7 @@ export function Confetti({ count = 30 }: { count?: number }) {
         delay: Math.random() * 2.2,
         duration: 2.8 + Math.random() * 2.4,
         size: Math.random() < 0.5 ? 'h-4 w-4' : 'h-6 w-6',
-        color: ['text-amber-300', 'text-indigo-300', 'text-emerald-300', 'text-rose-300'][i % 4],
+        color: ['text-amber-600', 'text-indigo-600', 'text-emerald-600', 'text-rose-600'][i % 4],
       })),
     [count],
   )
@@ -260,11 +260,11 @@ export function TimerBar({ msLeft, totalMs }: { msLeft: number; totalMs: number 
   const pct = totalMs > 0 ? Math.min(100, Math.max(0, (msLeft / totalMs) * 100)) : 0
   const urgent = msLeft <= 5000
   return (
-    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
+    <div className="h-3 w-full overflow-hidden rounded-full bg-slate-200">
       <div
         className={cx(
           'h-full rounded-full transition-[width] duration-200 ease-linear',
-          urgent ? 'bg-rose-500' : 'bg-emerald-400',
+          urgent ? 'bg-rose-500' : 'bg-emerald-500',
         )}
         style={{ width: `${pct}%` }}
       />
@@ -274,7 +274,7 @@ export function TimerBar({ msLeft, totalMs }: { msLeft: number; totalMs: number 
 
 export function QuestionBlock({ text, imageUrl }: { text: string; imageUrl?: string | null }) {
   return (
-    <div className="pop-in rounded-2xl border border-slate-700/60 bg-slate-800/80 p-6 text-center shadow-xl">
+    <div className="pop-in rounded-2xl border border-slate-200 bg-white/90 p-6 text-center shadow-xl">
       {imageUrl ? (
         <img src={imageUrl} alt="" className="mx-auto mb-4 max-h-56 rounded-xl object-contain" loading="lazy" />
       ) : null}
@@ -293,7 +293,7 @@ export function PlayerChips({
   answeredIds?: Set<string>
 }) {
   if (!players.length) {
-    return <p className="text-slate-400">Chưa có bạn nào vào phòng...</p>
+    return <p className="text-slate-500">Chưa có bạn nào vào phòng...</p>
   }
   return (
     <div className="flex flex-wrap justify-center gap-2">
@@ -303,8 +303,8 @@ export function PlayerChips({
           <span
             key={player.id}
             className={cx(
-              'flex items-center gap-2 rounded-full border bg-slate-800/80 px-3 py-1.5 text-sm',
-              player.id === meId ? 'border-indigo-400' : 'border-slate-700',
+              'flex items-center gap-2 rounded-full border bg-white/90 px-3 py-1.5 text-sm',
+              player.id === meId ? 'border-indigo-300' : 'border-slate-200',
               answered ? 'opacity-100' : '',
             )}
           >
@@ -313,8 +313,8 @@ export function PlayerChips({
               {player.name}
               {player.id === meId ? ' (em)' : ''}
             </span>
-            <span className="text-slate-400">{player.score}</span>
-            {answered ? <Check className="h-4 w-4 text-emerald-400" /> : null}
+            <span className="text-slate-500">{player.score}</span>
+            {answered ? <Check className="h-4 w-4 text-emerald-600" /> : null}
           </span>
         )
       })}
@@ -322,7 +322,7 @@ export function PlayerChips({
   )
 }
 
-const MEDAL_STYLES = ['text-amber-300', 'text-slate-300', 'text-orange-400']
+const MEDAL_STYLES = ['text-amber-600', 'text-slate-600', 'text-orange-400']
 
 // Huy chương vàng/bạc/đồng cho 3 hạng đầu; các hạng sau hiện số.
 function RankMedal({ rank, size = 'sm' }: { rank: number; size?: 'sm' | 'lg' }) {
@@ -354,7 +354,7 @@ export function Leaderboard({
           key={player.id}
           className={cx(
             'flex items-center gap-3 rounded-xl px-4 py-2.5',
-            player.id === meId ? 'border border-indigo-400/50 bg-indigo-500/20' : 'bg-slate-800/70',
+            player.id === meId ? 'border border-indigo-300 bg-indigo-50' : 'border border-slate-200 bg-white',
           )}
         >
           <span className="flex w-7 items-center justify-center">
@@ -388,11 +388,11 @@ export function Podium({ players }: { players: PlayerRow[] }) {
           <div key={player.id} className="flex w-24 flex-col items-center gap-2 sm:w-32">
             <RankMedal rank={rank + 1} size="lg" />
             <div className="max-w-full truncate font-bold">{player.name}</div>
-            <div className="font-mono text-sm text-slate-300">
+            <div className="font-mono text-sm text-slate-600">
               <ScoreNumber value={player.score} />
             </div>
             <div
-              className={cx('w-full rounded-t-xl border-t-4 bg-slate-800/80', conf.height)}
+              className={cx('w-full rounded-t-xl border border-slate-200 border-t-4 bg-white', conf.height)}
               style={{ borderTopColor: colorFor(player.id) }}
             />
           </div>

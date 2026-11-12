@@ -9,7 +9,9 @@ deploy trên **Vercel**.
 ## Tính năng
 
 **Giáo viên**
-- Không cần tài khoản: app tự tạo phiên ẩn danh và lưu bộ câu hỏi lên Supabase (gắn với trình duyệt đang dùng).
+- Không cần tài khoản: app tự tạo phiên ẩn danh và lưu bộ câu hỏi lên Supabase.
+- **Thư viện dùng chung nhiều máy**: bộ câu hỏi hiện trên mọi máy; máy nào cũng mở phòng được. Bộ do máy
+  khác tạo chỉ sửa/xóa được trên đúng máy đã tạo (đáp án đúng vẫn kín với học sinh).
 - Soạn bộ câu hỏi ngay trong app: nội dung, 4 đáp án, chọn đáp án đúng, thời gian 5–300 giây, ảnh (URL), sắp xếp thứ tự.
 - **Nhập nhanh đề từ Excel**: kéo–thả hoặc chọn tệp `.xlsx`/`.xls`, tự nhận dòng tiêu đề, báo lỗi theo số dòng
   Excel, kèm nút **tải tệp mẫu** (2 trang: Câu hỏi + Hướng dẫn). Cột: câu hỏi, A, B, C, D, đáp án đúng, thời gian, ảnh (URL).
@@ -90,14 +92,16 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
    học sinh đều dùng phiên ẩn danh (không cần tài khoản).
 3. **Authentication → URL Configuration**: đặt **Site URL** = `http://localhost:5173` (hoặc domain sau khi
    deploy), thêm **Redirect URLs**: `http://localhost:5173/**` và domain deploy (`https://ten-mien.vercel.app/**`).
-4. **SQL Editor**: chạy lần lượt **cả bốn** file migration theo thứ tự —
+4. **SQL Editor**: chạy lần lượt **cả năm** file migration theo thứ tự —
    [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) (bảng, RPC, RLS) rồi
    [`supabase/migrations/0002_host_room_controls.sql`](supabase/migrations/0002_host_room_controls.sql)
    (kết thúc phòng sớm + index phòng đang mở) rồi
    [`supabase/migrations/0003_quiz_owner_default.sql`](supabase/migrations/0003_quiz_owner_default.sql)
    (tự gán chủ sở hữu khi tạo bộ câu hỏi) rồi
    [`supabase/migrations/0004_anonymous_quizzes.sql`](supabase/migrations/0004_anonymous_quizzes.sql)
-   (cho phép phiên ẩn danh lưu bộ câu hỏi, không cần tài khoản giáo viên).
+   (cho phép phiên ẩn danh lưu bộ câu hỏi, không cần tài khoản giáo viên) rồi
+   [`supabase/migrations/0005_shared_quiz_library.sql`](supabase/migrations/0005_shared_quiz_library.sql)
+   (thư viện dùng chung nhiều máy + mở phòng cho bộ đề của máy khác).
 5. Tạo file `.env` ở gốc dự án (sao chép từ `.env.example`) và điền:
 
    ```
@@ -112,9 +116,9 @@ Chưa cấu hình Supabase thì app tự chuyển sang **chế độ chơi thử
 trên một máy. Khi điền đủ biến môi trường, `/host` dùng Supabase thật: bộ câu hỏi lưu trên cloud, không
 cần đăng nhập.
 
-> **Lưu ý:** mỗi trình duyệt có một phiên ẩn danh riêng, nên bộ câu hỏi chỉ hiện lại trên trình duyệt đã
-> tạo. Xóa dữ liệu trình duyệt (cookie/localStorage) sẽ mất quyền truy cập các bộ cũ. Muốn dùng nhiều máy
-> thì cần bật lại đăng nhập email (magic link) — code xác thực vẫn còn trong `src/lib/auth.tsx`.
+> **Lưu ý:** mọi máy đều thấy và mở phòng được bộ câu hỏi (thư viện dùng chung). Quyền sửa/xóa gắn với
+> máy đã tạo bộ đề (phiên ẩn danh), nên nếu xóa dữ liệu trình duyệt thì vẫn mở phòng được nhưng không sửa
+> được các bộ cũ. Học sinh không đọc được bảng `questions` nên đáp án đúng vẫn kín.
 
 ## Deploy lên Vercel
 
@@ -149,7 +153,8 @@ trực tiếp bảng nào. Chi tiết:
 | Gửi đáp án thứ 2 cho cùng 1 câu                             | khóa duy nhất `(player_id, q_index)` + RPC trả `false`  |
 | Gửi đáp án sau khi hết giờ                                  | RPC `submit_answer` kiểm tra giờ **server**             |
 | Chuyển câu / công bố thay giáo viên                         | RPC kiểm tra `host_id = auth.uid()`                     |
-| Đọc bộ câu hỏi / phòng của giáo viên khác                   | RLS `quiz_sets`, `questions` chỉ chủ sở hữu đọc được    |
+| Đọc câu hỏi / đáp án đúng của bộ đề khác                   | RLS `questions` chỉ chủ sở hữu đọc; phòng lấy đáp án qua RPC |
+| Sửa/xóa bộ đề của máy khác                                 | RLS `quiz_sets` chỉ cho `owner_id = auth.uid()` ghi       |
 | Xem bài làm của học sinh khác                               | RLS `answers`: chỉ bản thân + giáo viên chủ phòng       |
 | Dùng tool ngoài để thao tác                                 | Không có secret key trong client; mọi thứ qua RLS       |
 
@@ -177,6 +182,7 @@ supabase/
   migrations/ # 0001_init.sql — schema + RPC + RLS · 0002_host_room_controls.sql — kết thúc phòng sớm
               # · 0003_quiz_owner_default.sql — tự gán chủ sở hữu bộ câu hỏi
               # · 0004_anonymous_quizzes.sql — lưu bộ câu hỏi không cần tài khoản
+              # · 0005_shared_quiz_library.sql — thư viện dùng chung nhiều máy
 ```
 
 ## Giới hạn hiện tại & hướng phát triển

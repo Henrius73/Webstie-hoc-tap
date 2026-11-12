@@ -1,7 +1,7 @@
 // Trình soạn bộ câu hỏi: thêm/sửa/xóa/sắp xếp câu, nhập từ Excel, lưu, mở phòng.
 // (Form soạn câu và khối nhập Excel nằm ở components/QuestionForm.tsx và ExcelImportSection.tsx.)
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import {
   ArrowDown,
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Check,
   Clock,
   FileSpreadsheet,
+  Lock,
   Pencil,
   Plus,
   Rocket,
@@ -31,13 +32,16 @@ import {
   fieldClasses,
 } from '../components/ui'
 import { friendlyError } from '../lib/errors'
+import { useAuth } from '../lib/auth'
 import type { QuestionInput } from '../types/db'
 
 export default function QuizEditor() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [loading, setLoading] = useState(true)
+  const [notOwner, setNotOwner] = useState(false)
   const [title, setTitle] = useState('')
   const [drafts, setDrafts] = useState<QuestionInput[]>([])
   const [dirty, setDirty] = useState(false)
@@ -65,6 +69,13 @@ export default function QuizEditor() {
     setLoading(true)
     try {
       const { quiz, questions } = await fetchQuiz(id)
+      // Bộ đề dùng chung: máy khác xem được nhưng không sửa được (RLS chỉ mở bảng câu hỏi cho chủ).
+      if (user && quiz.owner_id !== user.id) {
+        setNotOwner(true)
+        setError(null)
+        return
+      }
+      setNotOwner(false)
       setTitle(quiz.title)
       setDrafts(
         questions.map(question => ({
@@ -81,7 +92,7 @@ export default function QuizEditor() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [id, user])
 
   useEffect(() => {
     void load()
@@ -163,6 +174,29 @@ export default function QuizEditor() {
     return (
       <PageShell>
         <Spinner label="Đang tải bộ câu hỏi..." />
+      </PageShell>
+    )
+  }
+
+  if (notOwner) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-xl space-y-4 text-center fade-in">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm">
+            <Lock className="h-8 w-8" />
+          </span>
+          <h1 className="text-2xl font-black">Bộ câu hỏi này thuộc máy khác</h1>
+          <p className="text-sm text-slate-500">
+            Bộ đề đã được tạo trên một trình duyệt khác nên chỉ máy đó mới sửa/xóa được. Bạn vẫn mở phòng
+            cho cả lớp bình thường từ thư viện.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Link to="/host" className={btnClasses('primary')}>
+              <ArrowLeft className="h-4 w-4" />
+              Về thư viện
+            </Link>
+          </div>
+        </section>
       </PageShell>
     )
   }

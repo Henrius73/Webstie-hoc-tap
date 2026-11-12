@@ -7,6 +7,7 @@ export interface QuizSummary {
   title: string
   count: number
   createdAt: string
+  ownerId: string
 }
 
 export interface QuestionDraft {
@@ -50,19 +51,26 @@ export function normalizeQuestions(questions: QuestionInput[]): QuestionDraft[] 
   })
 }
 
+interface QuizSummaryRow {
+  id: string
+  title: string
+  created_at: string
+  question_count: number | string | null
+  owner_id: string
+}
+
+// Danh sách bộ câu hỏi dùng chung cho mọi máy (RPC đếm câu dù RLS câu hỏi chỉ mở cho chủ).
 export async function listQuizzes(): Promise<QuizSummary[]> {
   const sb = requireSupabase()
-  const { data, error } = await sb
-    .from('quiz_sets')
-    .select('id,title,created_at,questions(count)')
-    .order('created_at', { ascending: false })
+  const { data, error } = await sb.rpc('list_quiz_summaries')
   if (error) throw error
 
-  return (data ?? []).map(row => ({
-    id: row.id as string,
-    title: row.title as string,
-    createdAt: row.created_at as string,
-    count: Number(row.questions?.[0]?.count) || 0,
+  return ((data ?? []) as QuizSummaryRow[]).map(row => ({
+    id: row.id,
+    title: row.title,
+    createdAt: row.created_at,
+    count: Number(row.question_count) || 0,
+    ownerId: row.owner_id,
   }))
 }
 

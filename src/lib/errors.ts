@@ -6,7 +6,8 @@ export function friendlyError(err: unknown): string {
     room_not_found: 'Không tìm thấy phòng. Hãy kiểm tra lại mã phòng hoặc phòng đã kết thúc.',
     invalid_state: 'Phòng đang ở trạng thái khác, thao tác này chưa thực hiện được.',
     not_in_room: 'Em chưa ở trong phòng này. Hãy vào phòng lại bằng mã.',
-    not_owner: 'Tài khoản này không phải chủ bộ câu hỏi.',
+    not_owner: 'Bộ câu hỏi này được tạo trên máy khác — chỉ máy đó mới sửa/xóa được.',
+    quiz_not_found: 'Không tìm thấy bộ câu hỏi. Có thể bộ đã bị xóa.',
     closed: 'Đã hết giờ trả lời câu này.',
   }
   for (const [code, text] of Object.entries(map)) {
@@ -19,7 +20,7 @@ export function friendlyError(err: unknown): string {
     return 'Bạn thao tác quá nhanh, hãy chờ ít phút rồi thử lại.'
   }
   if (/JWT|permission denied|row-level security/i.test(raw)) {
-    return 'Tài khoản chưa có quyền thực hiện thao tác này. Hãy đăng nhập lại.'
+    return 'Phiên làm việc chưa đủ quyền cho thao tác này. Hãy tải lại trang rồi thử lại.'
   }
   if (/Anonymous sign|anonymous/i.test(raw)) {
     return 'Project Supabase chưa bật đăng nhập ẩn danh. Vào Authentication → Sign In / Providers → bật Anonymous sign-ins.'

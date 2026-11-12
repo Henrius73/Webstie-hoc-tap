@@ -36,6 +36,13 @@
   `sectionLabelClasses`, component `EmptyState`; thiết kế lại Home/Join/Host/Luyện tập, header có logo
   Học Vui, nút có focus ring rõ ràng.
 - ⛔ Chưa có project Supabase thật → auth/RLS/realtime/đồng hồ **chưa kiểm chứng đầu-cuối**.
+- ✅ Kết nối Supabase thật (2026-11-12): đã chạy `0001_init.sql` + `0002_host_room_controls.sql`, bật
+  Anonymous sign-ins; kiểm chứng REST/RPC (bảng, RLS, `server_now`, các RPC phòng chơi).
+- ✅ Dùng Supabase **không cần tài khoản giáo viên** (2026-11-12): `/host` tự tạo phiên ẩn danh, bộ câu hỏi
+  lưu cloud (`0003` default owner + client gửi `owner_id`; `0004` cho phép phiên ẩn danh ghi).
+- ✅ **Thư viện dùng chung nhiều máy** (2026-11-12): `0005_shared_quiz_library.sql` — mọi máy đọc danh sách
+  bộ đề (RPC `list_quiz_summaries`), mở phòng cho bộ đề của máy khác; chỉ máy tạo mới sửa/xóa. Bảng
+  `questions` vẫn chỉ chủ sở hữu đọc nên đáp án đúng không lộ ra client.
 
 ---
 

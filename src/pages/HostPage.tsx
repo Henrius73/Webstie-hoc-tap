@@ -57,7 +57,7 @@ export default function HostPage() {
     )
   }
 
-  return <HostDashboard />
+  return <HostDashboard userId={user.id} />
 }
 
 // ----- Nhãn pha cho phòng đang mở -----
@@ -70,7 +70,7 @@ function roomPhaseLabel(room: ActiveRoom): string {
 
 // ----- Bảng điều khiển -----
 
-function HostDashboard() {
+function HostDashboard({ userId }: { userId: string }) {
   const navigate = useNavigate()
   const [quizzes, setQuizzes] = useState<QuizSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -166,10 +166,10 @@ function HostDashboard() {
             <Presentation className="h-4 w-4" />
             Khu vực giáo viên
           </p>
-          <h1 className="text-2xl font-black sm:text-3xl">Bộ câu hỏi của bạn</h1>
+          <h1 className="text-2xl font-black sm:text-3xl">Thư viện bộ câu hỏi</h1>
           <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-500">
             <Database className="h-4 w-4 text-emerald-600" />
-            Đã lưu trên Supabase
+            Lưu trên Supabase · dùng chung mọi máy
           </p>
         </div>
         <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
@@ -177,9 +177,9 @@ function HostDashboard() {
         </span>
       </header>
 
-      <p className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-        Bộ câu hỏi gắn với trình duyệt này (phiên ẩn danh). Dùng cùng trình duyệt để mở lại; xóa dữ liệu
-        trình duyệt sẽ mất quyền truy cập các bộ đã tạo.
+      <p className="mb-8 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-800">
+        Mọi máy đều thấy và mở phòng được các bộ câu hỏi dưới đây. Bộ nào do máy khác tạo sẽ chỉ mở phòng
+        được — muốn sửa/xóa thì phải dùng đúng trình duyệt đã tạo bộ đó.
       </p>
 
       {error ? (
@@ -241,7 +241,7 @@ function HostDashboard() {
       ) : null}
 
       <section>
-        <h2 className={`${sectionLabelClasses} mb-3`}>Bộ câu hỏi đã tạo</h2>
+        <h2 className={`${sectionLabelClasses} mb-3`}>Bộ câu hỏi trong thư viện</h2>
         {quizzes === null ? (
           <Spinner label="Đang tải danh sách..." />
         ) : quizzes.length === 0 ? (
@@ -252,38 +252,67 @@ function HostDashboard() {
           />
         ) : (
           <ul className="space-y-3">
-            {quizzes.map(quiz => (
-              <li
-                key={quiz.id}
-                className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-300 hover:shadow-md`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold">{quiz.title}</p>
-                  <p className="text-xs text-slate-500">
-                    {quiz.count} câu hỏi · tạo ngày {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link to={`/host/quiz/${quiz.id}`} className={btnClasses('ghost')}>
-                    <Pencil className="h-4 w-4" />
-                    Sửa
-                  </Link>
-                  <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
-                    {busyId === quiz.id ? (
-                      'Đang mở...'
-                    ) : (
+            {quizzes.map(quiz => {
+              const mine = quiz.ownerId === userId
+              return (
+                <li
+                  key={quiz.id}
+                  className={`${cardClasses} flex flex-wrap items-center gap-3 p-4 transition hover:border-indigo-300 hover:shadow-md`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2 font-bold">
+                      <span className="truncate">{quiz.title}</span>
+                      {mine ? (
+                        <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600">
+                          Của máy này
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                          Từ máy khác
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {quiz.count} câu hỏi · tạo ngày {new Date(quiz.createdAt).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {mine ? (
                       <>
-                        <Rocket className="h-4 w-4" />
-                        Tạo phòng
+                        <Link to={`/host/quiz/${quiz.id}`} className={btnClasses('ghost')}>
+                          <Pencil className="h-4 w-4" />
+                          Sửa
+                        </Link>
+                        <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
+                          {busyId === quiz.id ? (
+                            'Đang mở...'
+                          ) : (
+                            <>
+                              <Rocket className="h-4 w-4" />
+                              Tạo phòng
+                            </>
+                          )}
+                        </Btn>
+                        <Btn variant="danger" disabled={busyId === quiz.id} onClick={() => void handleDelete(quiz)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Btn>
                       </>
+                    ) : (
+                      <Btn disabled={busyId === quiz.id || quiz.count === 0} onClick={() => void handleStartRoom(quiz.id)}>
+                        {busyId === quiz.id ? (
+                          'Đang mở...'
+                        ) : (
+                          <>
+                            <Rocket className="h-4 w-4" />
+                            Mở phòng
+                          </>
+                        )}
+                      </Btn>
                     )}
-                  </Btn>
-                  <Btn variant="danger" disabled={busyId === quiz.id} onClick={() => void handleDelete(quiz)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Btn>
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>

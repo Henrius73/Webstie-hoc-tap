@@ -89,10 +89,12 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
 2. **Authentication → Sign In / Providers**: bật **Anonymous sign-ins** (học sinh không cần tài khoản).
 3. **Authentication → URL Configuration**: đặt **Site URL** = `http://localhost:5173` (hoặc domain sau khi
    deploy), thêm **Redirect URLs**: `http://localhost:5173/**` và domain deploy (`https://ten-mien.vercel.app/**`).
-4. **SQL Editor**: chạy lần lượt **cả hai** file migration theo thứ tự —
+4. **SQL Editor**: chạy lần lượt **cả ba** file migration theo thứ tự —
    [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) (bảng, RPC, RLS) rồi
    [`supabase/migrations/0002_host_room_controls.sql`](supabase/migrations/0002_host_room_controls.sql)
-   (kết thúc phòng sớm + index phòng đang mở).
+   (kết thúc phòng sớm + index phòng đang mở) rồi
+   [`supabase/migrations/0003_quiz_owner_default.sql`](supabase/migrations/0003_quiz_owner_default.sql)
+   (tự gán chủ sở hữu khi tạo bộ câu hỏi).
 5. Tạo file `.env` ở gốc dự án (sao chép từ `.env.example`) và điền:
 
    ```
@@ -165,6 +167,7 @@ src/
   types/      # db.ts — kiểu dữ liệu các bảng
 supabase/
   migrations/ # 0001_init.sql — schema + RPC + RLS · 0002_host_room_controls.sql — kết thúc phòng sớm
+              # · 0003_quiz_owner_default.sql — tự gán chủ sở hữu bộ câu hỏi
 ```
 
 ## Giới hạn hiện tại & hướng phát triển

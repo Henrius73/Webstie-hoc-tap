@@ -91,9 +91,14 @@ export async function createQuizSet(title: string, questions: QuestionInput[]): 
   const drafts = normalizeQuestions(questions)
   const cleanTitle = title.trim().slice(0, 120) || 'Bộ câu hỏi'
 
+  // Gán chủ sở hữu ngay khi tạo: RLS bắt buộc owner_id = auth.uid().
+  const { data: sessionData } = await sb.auth.getSession()
+  const ownerId = sessionData.session?.user.id
+  if (!ownerId) throw new Error('Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.')
+
   const { data: quiz, error } = await sb
     .from('quiz_sets')
-    .insert({ title: cleanTitle })
+    .insert({ title: cleanTitle, owner_id: ownerId })
     .select('id')
     .single()
   if (error) throw error

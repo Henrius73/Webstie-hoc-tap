@@ -1,7 +1,8 @@
-// Trang giáo viên: đăng nhập email (magic link) + quản lý bộ câu hỏi và phòng đang mở.
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router'
-import { BookOpen, GraduationCap, LogOut, MailCheck, Pencil, Plus, Presentation, Rocket, Trash2, Undo2 } from 'lucide-react'
+// Trang giáo viên: quản lý bộ câu hỏi lưu trên Supabase + phòng đang mở.
+// Không cần tài khoản: app tự tạo phiên ẩn danh gắn với trình duyệt này.
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, Navigate, useNavigate } from 'react-router'
+import { BookOpen, Database, Pencil, Plus, Presentation, Rocket, Trash2, Undo2 } from 'lucide-react'
 import { createRoom, fetchActiveRooms, type ActiveRoom } from '../api/rooms'
 import { createQuizSet, deleteQuizSet, listQuizzes, type QuizSummary } from '../api/quizzes'
 import {
@@ -20,33 +21,43 @@ import { friendlyError } from '../lib/errors'
 import { isConfigured } from '../lib/supabase'
 
 export default function HostPage() {
-  const { ready, user, isTeacher, sendTeacherLink, signOut } = useAuth()
-  const location = useLocation()
-  const navigate = useNavigate()
+  const { ready, user, ensureAnonymous } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [preparing, setPreparing] = useState(false)
+  const askedRef = useRef(false)
 
-  // Dọn ?code= trên URL sau khi magic link quay lại.
+  // Tự tạo phiên ẩn danh để lưu bộ câu hỏi lên Supabase mà không cần đăng nhập.
   useEffect(() => {
-    if (!user) return
-    const params = new URLSearchParams(location.search)
-    if (params.has('code')) navigate(location.pathname, { replace: true })
-  }, [user, location.search, location.pathname, navigate])
+    if (!isConfigured || !ready || user || askedRef.current) return
+    askedRef.current = true
+    setPreparing(true)
+    ensureAnonymous()
+      .catch(err => setError(friendlyError(err)))
+      .finally(() => setPreparing(false))
+  }, [ready, user, ensureAnonymous])
 
   if (!isConfigured) {
     // Chưa cấu hình Supabase → dùng chế độ chơi thử cục bộ.
     return <Navigate to="/demo" replace />
   }
 
-  if (!ready) {
+  if (error) {
     return (
       <PageShell>
-        <Spinner label="Đang kiểm tra đăng nhập..." />
+        <ErrorCard message={error} onRetry={() => location.reload()} />
       </PageShell>
     )
   }
 
-  if (!isTeacher || !user) return <TeacherLogin sendTeacherLink={sendTeacherLink} signOut={signOut} />
+  if (!ready || preparing || !user) {
+    return (
+      <PageShell>
+        <Spinner label="Đang chuẩn bị chỗ lưu bộ câu hỏi..." />
+      </PageShell>
+    )
+  }
 
-  return <HostDashboard email={user.email ?? ''} onSignOut={() => void signOut()} />
+  return <HostDashboard />
 }
 
 // ----- Nhãn pha cho phòng đang mở -----
@@ -57,107 +68,9 @@ function roomPhaseLabel(room: ActiveRoom): string {
   return `Đang công bố câu ${room.qIndex + 1}/${room.totalQuestions}`
 }
 
-// ----- Đăng nhập -----
-
-function TeacherLogin({
-  sendTeacherLink,
-  signOut,
-}: {
-  sendTeacherLink: (email: string) => Promise<void>
-  signOut: () => Promise<void>
-}) {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    setError(null)
-    const clean = email.trim()
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
-      setError('Hãy nhập địa chỉ email hợp lệ.')
-      return
-    }
-    setBusy(true)
-    try {
-      await sendTeacherLink(clean)
-      setSent(true)
-    } catch (err) {
-      setError(friendlyError(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <PageShell>
-      <section className="mx-auto max-w-md fade-in">
-        <div className="mb-6 text-center">
-          <GraduationCap className="mx-auto mb-3 h-12 w-12 text-indigo-600" />
-          <h1 className="text-3xl font-black">Giáo viên đăng nhập</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Nhập email để nhận liên kết đăng nhập. Bộ câu hỏi sẽ được lưu vào tài khoản của thầy/cô.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className={`${cardClasses} space-y-4 p-6 shadow-xl`}>
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-slate-600">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              autoComplete="email"
-              placeholder="giaoVien@truong.edu.vn"
-              disabled={busy || sent}
-              className={`${fieldClasses} py-3`}
-            />
-          </label>
-
-          {error ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </p>
-          ) : null}
-
-          {sent ? (
-            <div className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              <p className="inline-flex items-center gap-2 font-semibold">
-                <MailCheck className="h-4 w-4" />
-                Đã gửi liên kết đăng nhập!
-              </p>
-              <p>
-                Mở hộp thư email của thầy/cô <strong>trên trình duyệt này</strong> và bấm vào liên kết để quay lại
-                trang. (Nhớ thêm địa chỉ trang web vào Redirect URLs trong Supabase nếu chưa làm.)
-              </p>
-            </div>
-          ) : (
-            <Btn type="submit" size="lg" disabled={busy} className="w-full">
-              {busy ? 'Đang gửi...' : 'Gửi liên kết đăng nhập'}
-            </Btn>
-          )}
-        </form>
-
-        <p className="mt-4 text-center text-xs text-slate-500">
-          Đang đăng nhập bằng tài khoản học sinh?{' '}
-          <button
-            type="button"
-            className="underline"
-            onClick={() => void signOut().catch(() => {})}
-          >
-            Đăng xuất
-          </button>{' '}
-          rồi đăng nhập lại bằng email.
-        </p>
-      </section>
-    </PageShell>
-  )
-}
-
 // ----- Bảng điều khiển -----
 
-function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => void }) {
+function HostDashboard() {
   const navigate = useNavigate()
   const [quizzes, setQuizzes] = useState<QuizSummary[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -247,20 +160,27 @@ function HostDashboard({ email, onSignOut }: { email: string; onSignOut: () => v
 
   return (
     <PageShell>
-      <header className={`${cardClasses} mb-8 flex flex-wrap items-center justify-between gap-4 p-5 fade-in`}>
+      <header className={`${cardClasses} mb-4 flex flex-wrap items-start justify-between gap-4 p-5 fade-in`}>
         <div>
           <p className="mb-1 inline-flex items-center gap-2 text-xs font-semibold tracking-widest text-indigo-600 uppercase">
             <Presentation className="h-4 w-4" />
             Khu vực giáo viên
           </p>
-          <h1 className="text-2xl font-black sm:text-3xl">Bộ câu hỏi của thầy/cô</h1>
-          <p className="text-sm text-slate-500">{email}</p>
+          <h1 className="text-2xl font-black sm:text-3xl">Bộ câu hỏi của bạn</h1>
+          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-slate-500">
+            <Database className="h-4 w-4 text-emerald-600" />
+            Đã lưu trên Supabase
+          </p>
         </div>
-        <Btn variant="ghost" onClick={onSignOut}>
-          <LogOut className="h-4 w-4" />
-          Đăng xuất
-        </Btn>
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+          Không cần tài khoản
+        </span>
       </header>
+
+      <p className="mb-8 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+        Bộ câu hỏi gắn với trình duyệt này (phiên ẩn danh). Dùng cùng trình duyệt để mở lại; xóa dữ liệu
+        trình duyệt sẽ mất quyền truy cập các bộ đã tạo.
+      </p>
 
       {error ? (
         <div className="mb-6">

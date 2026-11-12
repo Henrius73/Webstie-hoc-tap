@@ -9,7 +9,7 @@ deploy trên **Vercel**.
 ## Tính năng
 
 **Giáo viên**
-- Đăng nhập bằng email (magic link, không cần mật khẩu).
+- Không cần tài khoản: app tự tạo phiên ẩn danh và lưu bộ câu hỏi lên Supabase (gắn với trình duyệt đang dùng).
 - Soạn bộ câu hỏi ngay trong app: nội dung, 4 đáp án, chọn đáp án đúng, thời gian 5–300 giây, ảnh (URL), sắp xếp thứ tự.
 - **Nhập nhanh đề từ Excel**: kéo–thả hoặc chọn tệp `.xlsx`/`.xls`, tự nhận dòng tiêu đề, báo lỗi theo số dòng
   Excel, kèm nút **tải tệp mẫu** (2 trang: Câu hỏi + Hướng dẫn). Cột: câu hỏi, A, B, C, D, đáp án đúng, thời gian, ảnh (URL).
@@ -86,15 +86,18 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
 ## Cấu hình Supabase (làm 1 lần)
 
 1. Tạo project tại [supabase.com](https://supabase.com) (chọn vùng gần Việt Nam cho đỡ lag).
-2. **Authentication → Sign In / Providers**: bật **Anonymous sign-ins** (học sinh không cần tài khoản).
+2. **Authentication → Sign In / Providers**: bật **Anonymous sign-ins** — bắt buộc, vì cả giáo viên lẫn
+   học sinh đều dùng phiên ẩn danh (không cần tài khoản).
 3. **Authentication → URL Configuration**: đặt **Site URL** = `http://localhost:5173` (hoặc domain sau khi
    deploy), thêm **Redirect URLs**: `http://localhost:5173/**` và domain deploy (`https://ten-mien.vercel.app/**`).
-4. **SQL Editor**: chạy lần lượt **cả ba** file migration theo thứ tự —
+4. **SQL Editor**: chạy lần lượt **cả bốn** file migration theo thứ tự —
    [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) (bảng, RPC, RLS) rồi
    [`supabase/migrations/0002_host_room_controls.sql`](supabase/migrations/0002_host_room_controls.sql)
    (kết thúc phòng sớm + index phòng đang mở) rồi
    [`supabase/migrations/0003_quiz_owner_default.sql`](supabase/migrations/0003_quiz_owner_default.sql)
-   (tự gán chủ sở hữu khi tạo bộ câu hỏi).
+   (tự gán chủ sở hữu khi tạo bộ câu hỏi) rồi
+   [`supabase/migrations/0004_anonymous_quizzes.sql`](supabase/migrations/0004_anonymous_quizzes.sql)
+   (cho phép phiên ẩn danh lưu bộ câu hỏi, không cần tài khoản giáo viên).
 5. Tạo file `.env` ở gốc dự án (sao chép từ `.env.example`) và điền:
 
    ```
@@ -106,7 +109,12 @@ Build production: `npm run build` (kiểm tra type + đóng gói vào `dist/`), 
    **tuyệt đối không đặt secret key (`sb_secret_...`) trong `.env`**.
 
 Chưa cấu hình Supabase thì app tự chuyển sang **chế độ chơi thử** (`/demo`) — vẫn dùng được đầy đủ
-trên một máy. Khi điền đủ biến môi trường, `/host` quay lại luồng đăng nhập giáo viên như bình thường.
+trên một máy. Khi điền đủ biến môi trường, `/host` dùng Supabase thật: bộ câu hỏi lưu trên cloud, không
+cần đăng nhập.
+
+> **Lưu ý:** mỗi trình duyệt có một phiên ẩn danh riêng, nên bộ câu hỏi chỉ hiện lại trên trình duyệt đã
+> tạo. Xóa dữ liệu trình duyệt (cookie/localStorage) sẽ mất quyền truy cập các bộ cũ. Muốn dùng nhiều máy
+> thì cần bật lại đăng nhập email (magic link) — code xác thực vẫn còn trong `src/lib/auth.tsx`.
 
 ## Deploy lên Vercel
 
@@ -119,7 +127,7 @@ trên một máy. Khi điền đủ biến môi trường, `/host` quay lại lu
 
 ## Luồng chơi nhanh
 
-1. Giáo viên mở `/host`, đăng nhập bằng email, tạo bộ câu hỏi, soạn câu.
+1. Giáo viên mở `/host` (không cần đăng nhập), tạo bộ câu hỏi, soạn câu hoặc nhập từ Excel.
 2. Bấm **Tạo phòng** → nhận mã 6 số + liên kết, chiếu lên bảng cho lớp.
 3. Học sinh mở liên kết (hoặc `/join`), nhập mã + tên.
 4. Giáo viên bấm **Bắt đầu** → mỗi câu: đếm ngược → giáo viên xem thống kê → hết giờ hệ thống tự
@@ -168,6 +176,7 @@ src/
 supabase/
   migrations/ # 0001_init.sql — schema + RPC + RLS · 0002_host_room_controls.sql — kết thúc phòng sớm
               # · 0003_quiz_owner_default.sql — tự gán chủ sở hữu bộ câu hỏi
+              # · 0004_anonymous_quizzes.sql — lưu bộ câu hỏi không cần tài khoản
 ```
 
 ## Giới hạn hiện tại & hướng phát triển
